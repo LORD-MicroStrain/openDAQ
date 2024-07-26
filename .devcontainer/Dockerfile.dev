@@ -1,0 +1,112 @@
+ARG ARCH="amd64"
+ARG UBUNTU_VERSION="22.04"
+FROM ${ARCH}/ubuntu:${UBUNTU_VERSION}
+
+# Add the proxy cert to the trusted chain of certs
+COPY .devcontainer/ZScaler.crt /usr/local/share/ca-certificates/ZScaler.crt
+RUN set -ex \
+    && apt-get update && apt-get install --no-install-recommends -y \
+        ca-certificates \
+    && update-ca-certificates
+
+# Install some general tools
+ENV DEBIAN_FRONTEND="noninteractive"
+RUN set -ex \
+    && apt-get update && apt-get install -y \
+        tar \
+        gdb \
+        git \
+        vim \
+        zip \
+        lld \
+        curl \
+        unzip \
+        gperf \
+        cmake \
+        libtool \
+        python3 \
+        autoconf \
+        xorg-dev \
+        libgl-dev \
+        autopoint \
+        libssl-dev \
+        libx11-dev \
+        libudev-dev \
+        ninja-build \
+        mono-complete \
+        python3-jinja2 \
+        libfreetype-dev \
+        bash-completion \
+        build-essential
+
+# MSCL requires a newer version of cmake, so install that here if we are on an older version
+ARG CMAKE_MIN_MAJOR_VERSION="3"
+ARG CMAKE_MIN_MINOR_VERSION="26"
+ARG CMAKE_MIN_PATCH_VERSION="2"
+RUN set -ex \
+    && export cmake_min_version="${CMAKE_MIN_MAJOR_VERSION}.${CMAKE_MIN_MINOR_VERSION}.${CMAKE_MIN_PATCH_VERSION}" \
+    && export cmake_version=$(cmake --version | head -1 | cut -d" " -f3) \
+    && if [ "${cmake_version}" != "${cmake_min_version}" -a "${cmake_version}" = "$(printf "${cmake_version}\n${cmake_min_version}" | sort --version-sort | head -n1)" ]; then \
+        /bin/bash -c ' \
+            set -ex && \
+            cmake_min_major_minor_version="${CMAKE_MIN_MAJOR_VERSION}.${CMAKE_MIN_MINOR_VERSION}" && \
+            curl -fsSLo /tmp/cmake-${cmake_min_version}.tar.gz https://cmake.org/files/v${cmake_min_major_minor_version}/cmake-${cmake_min_version}.tar.gz && \
+            tar -C /tmp/ -xzf /tmp/cmake-${cmake_min_version}.tar.gz && \
+            cd /tmp/cmake-${cmake_min_version} && \
+            ./bootstrap \
+                --prefix="/usr" \
+                --parallel=$(nproc) \
+                -- \
+                -DCMAKE_INSTALL_PREFIX="/usr" \
+                -DCMAKE_BUILD_TYPE="RELEASE" \
+                -DCMAKE_USE_OPENSSL=ON && \
+            make -j$(nproc) && \
+            make install \
+        '; \
+        else \
+            echo "No need to rebuild cmake"; \
+        fi
+
+# Add a user that will be used when shelling into this container and allow them to use devices
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+RUN set -ex \
+    && apt-get update && apt-get install -y \
+        sudo \
+    && groupadd -g ${USER_ID} microstrain \
+    && useradd \
+        -N \
+        -m \
+        -u ${USER_ID} \
+        -g ${GROUP_ID} \
+        -G "dialout" \
+        -s "/bin/bash" \
+        microstrain \
+    && echo 'microstrain ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Prepare for installing some source files to make gdb easier
+ARG DBG_SRC_DIR="/usr/local/src"
+RUN set -ex \
+    && sed -i -e "s/^# deb-src/deb-src/g" /etc/apt/sources.list \
+    && apt-get update \
+    && mkdir -p "${DBG_SRC_DIR}" \
+    && chown -R "${USER_ID}:${GROUP_ID}" "${DBG_SRC_DIR}"
+
+# Setup GDB to be a little easier to use (needs to be done as the container user)
+USER microstrain
+ENV DEBUGINFOD_URLS="https://debuginfod.ubuntu.com"
+RUN set -ex \
+    && cd "${DBG_SRC_DIR}" \
+    && apt-get source \
+        libc6 \
+    \
+    # Cleanup some of the artifacts we don't care about
+    && find "${DBG_SRC_DIR}" -name "*.tar.*" -o -name "*.dsc" | xargs rm -f \
+    \
+    # Set some GDB settings based on the directories downloaded
+    && echo "set debuginfod enabled on" >> "${HOME}/.gdbinit" \
+    && echo "set debuginfod verbose 5" >> "${HOME}/.gdbinit" \
+    && find "${DBG_SRC_DIR}" -maxdepth 1 -mindepth 1 -type d | xargs -I{} echo "dir {}" >> "${HOME}/.gdbinit"
+
+# Switch back to root
+USER root

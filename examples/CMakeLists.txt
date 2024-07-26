@@ -40,6 +40,18 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
         add_dependencies(device_server daq::ws_stream_srv_module)
     endif()
 
+    add_executable(mscl_device_server cpp/mscl_device_server/mscl_device_server.cpp)
+    target_link_libraries(mscl_device_server PRIVATE daq::opendaq MSCL_Static)
+    add_dependencies(mscl_device_server daq::opcua_server_module
+                                   daq::ref_device_module
+    )
+    if (OPENDAQ_ENABLE_NATIVE_STREAMING)
+        add_dependencies(mscl_device_server daq::native_stream_srv_module)
+    endif()
+    if (OPENDAQ_ENABLE_WEBSOCKET_STREAMING)
+        add_dependencies(mscl_device_server daq::ws_stream_srv_module)
+    endif()
+
     add_executable(empty_example cpp/empty_example/empty_example.cpp)
     target_link_libraries(empty_example daq::opendaq)
 
