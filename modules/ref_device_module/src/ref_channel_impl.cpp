@@ -12,7 +12,10 @@
 #include <opendaq/scaling_factory.h>
 #include <opendaq/custom_log.h>
 #include <coreobjects/property_object_protected_ptr.h>
-
+#include <iostream>
+#include <chrono>
+#include <ctime>
+#include "mscl/mscl.h"
 
 #define PI 3.141592653589793
 
@@ -37,6 +40,8 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
 {
+
+
     initProperties();
     waveformChangedInternal();
     signalTypeChangedInternal();
@@ -44,7 +49,137 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     resetCounter();
     createSignals();
     buildSignalDescriptors();
+
+    initMSCL(0);
 }
+
+
+int init_check = -1;
+
+mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+
+auto now = std::chrono::system_clock::now();
+auto duration = now.time_since_epoch();
+
+
+
+void RefChannelImpl::initMSCL(uint8_t section)
+{
+    if (1)
+    {
+        // create the connection object with port and baud rate
+        //mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+
+        // create the BaseStation, passing in the connection
+        mscl::BaseStation basestation(connection);
+
+        mscl::WirelessNode node(12345, basestation);
+
+        mscl::PingResponse response = node.ping();
+
+        // if the ping response was a success
+        if (response.success())
+        {
+            response.baseRssi();  // the BaseStation RSSI
+            response.nodeRssi();  // the Node RSSI
+        }
+
+        // call the setToIdle function and get the resulting SetToIdleStatus object
+        mscl::SetToIdleStatus idleStatus = node.setToIdle();
+
+        // checks if the set to idle operation has completed (successfully or with a failure)
+        while (!idleStatus.complete())
+        {
+            std::cout << ".";
+        }
+
+        // check the result of the Set to Idle operation
+        switch (idleStatus.result())
+        {
+            case mscl::SetToIdleStatus::setToIdleResult_success:
+                std::cout << "Node is now in idle mode.";
+                break;
+
+            case mscl::SetToIdleStatus::setToIdleResult_canceled:
+                std::cout << "Set to Idle was canceled!";
+                break;
+
+            case mscl::SetToIdleStatus::setToIdleResult_failed:
+                std::cout << "Set to Idle has failed!";
+                break;
+        }
+
+
+        // create a WirelessNodeConfig which is used to set all node configuration options
+        mscl::WirelessNodeConfig config;
+
+        // set the configuration options that we want to change
+        //config.inactivityTimeout(7200);
+        config.samplingMode(mscl::WirelessTypes::samplingMode_sync);
+        config.sampleRate(mscl::WirelessTypes::sampleRate_128Hz);
+        config.unlimitedDuration(true);
+
+        // apply the configuration to the Node
+        node.applyConfig(config);
+
+        // create a SyncSamplingNetwork object, giving it the BaseStation that will be the master BaseStation for the network
+        mscl::SyncSamplingNetwork network(basestation);
+
+        // add a WirelessNode to the network.
+        // Note: The Node must already be configured for Sync Sampling before adding to the network, or else Error_InvalidNodeConfig will be
+        // thrown.
+        network.addNode(node);
+
+        network.ok();                // check if the network status is ok
+        network.lossless(true);      // enable Lossless for the network
+        network.percentBandwidth();  // get the total percent of bandwidth of the network
+
+        // apply the network configuration to every node in the network
+        network.applyConfiguration();
+
+        // start all the nodes in the network sampling.
+        //if (init_check == 1)
+            network.startSampling();
+        //node.startNonSyncSampling();
+
+        std::cout << " " << 10; 
+
+        std::cout << " ";
+    }
+    init_check += 1;
+}
+
+mscl::uint64 then = 0;
+
+
+float RefChannelImpl::fetch_MSCL_data()
+{
+    mscl::BaseStation basestation(connection);
+
+    mscl::DataSweeps sweeps = basestation.getData(10, 1);
+
+    //mscl::ChannelData temp = sweeps[0].data(); 
+
+    int sweep_num = 1; 
+    for (mscl::DataSweep sweep : sweeps)
+    {
+        std::cout << sweep_num << std::endl; 
+        mscl::ChannelData data = sweep.data();
+
+
+        // iterate over each point in the sweep (one point per channel)
+        for (mscl::WirelessDataPoint dataPoint : data)
+        {
+            //std::cout << "  -----  " << dataPoint.channelName();  // the name of the channel for this point
+            //std::cout << "  -----  " << dataPoint.storedAs();     // the ValueType that the data is stored as
+            std::cout << "value fetched: " << dataPoint.as_float() << std::endl; 
+
+            return dataPoint.as_float();     // get the value as a float
+        }
+       
+    }
+}
+
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
@@ -104,7 +239,7 @@ void RefChannelImpl::initProperties()
     objPtr.getOnPropertyValueWrite("UseGlobalSampleRate") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 
-    const auto sampleRateProp = FloatPropertyBuilder("SampleRate", 100.0)
+    const auto sampleRateProp = FloatPropertyBuilder("SampleRate", 10.0) //Peter
                                     .setVisible(EvalValue("!$UseGlobalSampleRate"))
                                     .setUnit(Unit("Hz"))
                                     .setMinValue(1.0)
@@ -231,6 +366,8 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
+    sampleRate = 100; //PETER heres where sample rate is established
+
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
 
@@ -296,6 +433,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
+ float MSCL_val; 
+
 std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
     auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
@@ -317,6 +456,12 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
         else
             buffer = static_cast<double*>(dataPacket.getRawData());
 
+
+        MSCL_val = fetch_MSCL_data();
+        std::cout << "value just just: " << MSCL_val << std::endl; 
+
+
+
         switch(waveformType)
         {
             case WaveformType::Counter:
@@ -328,7 +473,13 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
             case WaveformType::Sine:
             {
                 for (uint64_t i = 0; i < newSamples; i++)
-                    buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc + noiseAmpl * dist(re);
+                {
+                    // buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
+                    // noiseAmpl * dist(re);
+                    buffer[i] = MSCL_val * 100;
+
+                    std::cout << "value: " << MSCL_val << std::endl;
+                }  
                 break;
             }
             case WaveformType::Rect:

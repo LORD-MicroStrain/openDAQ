@@ -78,6 +78,8 @@ private:
     bool fixedPacketSize;
     uint64_t packetSize;
 
+    void initMSCL(uint8_t section);
+    float fetch_MSCL_data();
     void initProperties();
     void packetSizeChangedInternal();
     void packetSizeChanged();

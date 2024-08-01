@@ -6,6 +6,8 @@
 
 #include <chrono>
 #include <thread>
+#include <iostream>
+
 #include <opendaq/opendaq.h>
 
 using namespace daq;
@@ -15,8 +17,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
+
+    std::cout << " -------------------------------------------------------------------- " << MODULE_PATH; 
+
     // Add a reference device and set it as root
-    auto device = instance.addDevice("daqref://device0");
+    //auto device = instance.addDevice("daqref://device0");
+    auto device = instance.addDevice("daq.opcua://127.0.0.1");
 
     // Add statistics and renderer function block
     FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
