@@ -17,8 +17,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance(MODULE_PATH);
 
     // Add a reference device and set it as root
-    //auto device = instance.addDevice("daqref://device0");
-    auto device = instance.addDevice("daq.opcua://127.0.0.1");
+    auto device = instance.addDevice("daqref://device0");
+    //auto device = instance.addDevice("daq.opcua://127.0.0.1");
 
     // Add statistics and renderer function block
     FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
@@ -42,14 +42,15 @@ int main(int /*argc*/, const char* /*argv*/[])
     renderer.getInputPorts()[1].connect(averagedSine);
 
     // Process and render data for 10s, modulating the amplitude
+    
     double ampl_step = 0.1;
-    for (int i = 0; i < 4000; ++i)
+    for (;;)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(25));
-        const double ampl = sineChannel.getPropertyValue("Amplitude");
-        if (9.95 < ampl || ampl < 3.05)
-            ampl_step *= -1;
-        sineChannel.setPropertyValue("Amplitude", ampl + ampl_step);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        //const double ampl = sineChannel.getPropertyValue("Amplitude");
+        //if (9.95 < ampl || ampl < 3.05)
+        //    ampl_step *= -1;
+        //sineChannel.setPropertyValue("Amplitude", ampl + ampl_step);
     }
 
     return 0;

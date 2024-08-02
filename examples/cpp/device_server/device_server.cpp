@@ -16,7 +16,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Add a reference device as root device
     instance.setRootDevice("daqref://device0");
     
-    // Start streaming and openDAQ OpcUa servers
+    // Start streaming and openDAQ OpcUa servers 
     instance.addStandardServers();
     
     std::cout << "Press \"enter\" to exit the application..." << std::endl;

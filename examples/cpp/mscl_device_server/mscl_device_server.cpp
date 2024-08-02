@@ -84,10 +84,10 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // set the configuration options that we want to change
     //config.bootMode(mscl::WirelessTypes::bootMode_normal);
-    config.inactivityTimeout(7200);
-    //config.activeChannels(); 
+    config.inactivityTimeout(0xFFFF);
+    config.activeChannels(mscl::ChannelMask::ChannelMask(0b111)); // activate channels 1 through three using 0b111 bit mask  
     config.samplingMode(mscl::WirelessTypes::samplingMode_sync);
-    config.sampleRate(mscl::WirelessTypes::sampleRate_128Hz);
+    config.sampleRate(mscl::WirelessTypes::sampleRate_512Hz);
     config.unlimitedDuration(true);
 
     // apply the configuration to the Node
@@ -100,8 +100,6 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Note: The Node must already be configured for Sync Sampling before adding to the network, or else Error_InvalidNodeConfig will be
     // thrown.
     network.addNode(node);
-
-    network.ok();                // check if the network status is ok
     network.lossless(true);      // enable Lossless for the network
     network.percentBandwidth();  // get the total percent of bandwidth of the network
 

@@ -115,8 +115,9 @@ void RefChannelImpl::initMSCL(uint8_t section)
 
         // set the configuration options that we want to change
         //config.inactivityTimeout(7200);
+        config.activeChannels(mscl::ChannelMask::ChannelMask(0b111)); 
         config.samplingMode(mscl::WirelessTypes::samplingMode_sync);
-        config.sampleRate(mscl::WirelessTypes::sampleRate_128Hz);
+        config.sampleRate(mscl::WirelessTypes::sampleRate_512Hz);
         config.unlimitedDuration(true);
 
         // apply the configuration to the Node
@@ -156,7 +157,7 @@ float RefChannelImpl::fetch_MSCL_data()
 {
     mscl::BaseStation basestation(connection);
 
-    mscl::DataSweeps sweeps = basestation.getData(10, 1);
+    mscl::DataSweeps sweeps = basestation.getData(100, 1);
 
     //mscl::ChannelData temp = sweeps[0].data(); 
 
@@ -366,7 +367,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 100; //PETER heres where sample rate is established
+    sampleRate = 500;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
