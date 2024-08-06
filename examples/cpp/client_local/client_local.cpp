@@ -17,12 +17,12 @@ int main(int /*argc*/, const char* /*argv*/[])
     const InstancePtr instance = Instance(MODULE_PATH);
 
     // Add a reference device and set it as root
-    auto device = instance.addDevice("daqref://device0");
-    //auto device = instance.addDevice("daq.opcua://127.0.0.1");
+    //auto device = instance.addDevice("daqref://device0");
+    auto device = instance.addDevice("daq.opcua://127.0.0.1");
 
     // Add statistics and renderer function block
-    FunctionBlockPtr statistics = instance.addFunctionBlock("ref_fb_module_statistics");
-    FunctionBlockPtr renderer = instance.addFunctionBlock("ref_fb_module_renderer");
+    FunctionBlockPtr statistics = instance.addFunctionBlock("RefFBModuleStatistics");
+    FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Set renderer to draw 2.5s of data
     renderer.setPropertyValue("Duration", 2.5);

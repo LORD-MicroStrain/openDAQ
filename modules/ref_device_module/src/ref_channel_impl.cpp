@@ -14,6 +14,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <iostream>
 #include <chrono>
+#include <thread>
 #include <ctime>
 #include "mscl/mscl.h"
 
@@ -23,7 +24,7 @@ BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
 RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init)
     : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
-    , waveformType(WaveformType::Sine)
+    , waveformType(WaveformType::None)
     , freq(0)
     , ampl(0)
     , dc(0)
@@ -54,14 +55,8 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 }
 
 
-int init_check = -1;
 
 mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
-
-auto now = std::chrono::system_clock::now();
-auto duration = now.time_since_epoch();
-
-
 
 void RefChannelImpl::initMSCL(uint8_t section)
 {
@@ -142,12 +137,8 @@ void RefChannelImpl::initMSCL(uint8_t section)
         //if (init_check == 1)
             network.startSampling();
         //node.startNonSyncSampling();
-
-        std::cout << " " << 10; 
-
-        std::cout << " ";
+            
     }
-    init_check += 1;
 }
 
 mscl::uint64 then = 0;
@@ -164,20 +155,46 @@ float RefChannelImpl::fetch_MSCL_data()
     int sweep_num = 1; 
     for (mscl::DataSweep sweep : sweeps)
     {
-        std::cout << sweep_num << std::endl; 
         mscl::ChannelData data = sweep.data();
 
 
         // iterate over each point in the sweep (one point per channel)
+
+        int continue_count = 0;
+
+
         for (mscl::WirelessDataPoint dataPoint : data)
         {
-            //std::cout << "  -----  " << dataPoint.channelName();  // the name of the channel for this point
-            //std::cout << "  -----  " << dataPoint.storedAs();     // the ValueType that the data is stored as
-            std::cout << "value fetched: " << dataPoint.as_float() << std::endl; 
+    
+           //std::cout << this->name << std::endl;
 
-            return dataPoint.as_float();     // get the value as a float
+            if (this->name == "RefCh0")
+            {
+                std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
+                return dataPoint.as_float();  // get the value as a float
+            }
+            if (this->name == "RefCh1")
+            {
+                if (continue_count == 0)
+                {
+                    continue_count++;
+                    continue; 
+                }
+                std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
+                return dataPoint.as_float();  // get the value as a float
+            }
+            if (this->name == "RefCh2")
+            {
+                if (continue_count <= 1)
+                {
+                    continue_count++;
+                    continue; 
+                }
+                std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
+                return dataPoint.as_float();  // get the value as a float
+            }
         }
-       
+        continue_count = 0; 
     }
 }
 
@@ -367,7 +384,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 500;  // PETER heres where sample rate is established
+    sampleRate = 512;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -459,9 +476,6 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 
 
         MSCL_val = fetch_MSCL_data();
-        std::cout << "value just just: " << MSCL_val << std::endl; 
-
-
 
         switch(waveformType)
         {
@@ -477,9 +491,12 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
                 {
                     // buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
                     // noiseAmpl * dist(re);
-                    buffer[i] = MSCL_val * 100;
-
-                    std::cout << "value: " << MSCL_val << std::endl;
+                    if (this->name == "RefCh0")
+                        buffer[i] = MSCL_val;
+                    if (this->name == "RefCh1")
+                        buffer[i] = MSCL_val;
+                    if (this->name == "RefCh2")
+                        buffer[i] = MSCL_val;
                 }  
                 break;
             }

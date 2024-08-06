@@ -44,6 +44,13 @@ public:
 private:
     void initClock();
     void initIoFolder();
+
+
+    void initMSCL(uint8_t section);
+    static float fetch_MSCL_data();
+
+
+
     void initSyncComponent();
     void initProperties(const PropertyObjectPtr& config);
     void acqLoop();

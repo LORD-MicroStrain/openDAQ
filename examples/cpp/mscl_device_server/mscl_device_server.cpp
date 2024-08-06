@@ -16,28 +16,28 @@ using namespace daq;
 mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 mscl::BaseStation basestation(connection);
 
+mscl::uint64 now , then; 
+
 
 float fetch_MSCL_data()
 {
-    mscl::DataSweeps sweeps = basestation.getData(0, 3);
-
-    // mscl::ChannelData temp = sweeps[0].data();
+    mscl::DataSweeps sweeps = basestation.getData(0, 1);
 
     int sweep_num = 1;
     for (mscl::DataSweep sweep : sweeps)
     {
         mscl::ChannelData data = sweep.data();
+        now = sweep.timestamp().nanoseconds();
+        std::cout << "new val: " << (now - then) / 1000000 << "ms" << std::endl << std::endl; 
 
-        mscl::uint64 now = sweep.timestamp().nanoseconds();
-        std::cout << "new val" << std::endl << std::endl; 
         // iterate over each point in the sweep (one point per channel)
         for (mscl::WirelessDataPoint dataPoint : data)
         {
-            std::cout << "channel: " << dataPoint.channelName() << std::endl;  // the name of the channel for this point
-            //std::cout << "value type: " << dataPoint.storedAs() << std::endl;     // the ValueType that the data is stored as
-            std::cout << "value fetched: " << dataPoint.as_float() << std::endl << std::endl;
+            std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
         }
     }
+
+    then = now; 
     return 1; 
 }
 
@@ -87,7 +87,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     config.inactivityTimeout(0xFFFF);
     config.activeChannels(mscl::ChannelMask::ChannelMask(0b111)); // activate channels 1 through three using 0b111 bit mask  
     config.samplingMode(mscl::WirelessTypes::samplingMode_sync);
-    config.sampleRate(mscl::WirelessTypes::sampleRate_512Hz);
+    config.sampleRate(mscl::WirelessTypes::sampleRate_32Hz);
     config.unlimitedDuration(true);
 
     // apply the configuration to the Node

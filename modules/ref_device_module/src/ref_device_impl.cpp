@@ -9,6 +9,7 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <utility>
+#include "mscl/mscl.h"
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -173,7 +174,7 @@ void RefDeviceImpl::acqLoop()
 
 void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
-    size_t numberOfChannels = 2;
+    size_t numberOfChannels = 3;
     bool enableCANChannel = false;
 
     if (config.assigned())
