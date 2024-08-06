@@ -13,6 +13,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create an openDAQ instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
+    std::cout << " " << MODULE_PATH;
+
     // Add a reference device as root device
     instance.setRootDevice("daqref://device0");
     
