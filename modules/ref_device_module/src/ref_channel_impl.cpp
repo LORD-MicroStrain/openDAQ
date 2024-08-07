@@ -532,7 +532,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 300;  // PETER heres where sample rate is established
+    sampleRate = 100;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
