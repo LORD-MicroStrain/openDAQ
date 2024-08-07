@@ -49,6 +49,9 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
+    static void fetch_MSCL_data(int num_data_points);
+
+
 protected:
     void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
 
@@ -79,8 +82,9 @@ private:
     uint64_t packetSize;
 
     void initMSCL(uint8_t section);
-    void fetch_MSCL_data(int num_data_points);
-
+    
+    std::thread fetchThread;
+    
 
     void initProperties();
     void packetSizeChangedInternal();
