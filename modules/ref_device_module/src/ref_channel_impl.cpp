@@ -408,6 +408,9 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
     auto newSamples = samplesSinceStart - samplesGenerated;
 
+    std::cout << "channel: " << index << "\n";    
+    std::cout << "samples requested: " << newSamples << "\n";    
+
     if (newSamples > 0)
     {
         if (!fixedPacketSize)

@@ -46,6 +46,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
+    acqThread2 = std::thread{ &RefDeviceImpl::hello, this };
 }
 
 RefDeviceImpl::~RefDeviceImpl()
@@ -57,6 +58,14 @@ RefDeviceImpl::~RefDeviceImpl()
     cv.notify_one();
 
     acqThread.join();
+}
+
+void RefDeviceImpl::hello()
+{
+    while (1)
+    {
+        std::cout << "Hello\n";
+    }
 }
 
 DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)

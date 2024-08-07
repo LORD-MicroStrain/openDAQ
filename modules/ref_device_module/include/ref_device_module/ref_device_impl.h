@@ -60,10 +60,13 @@ private:
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
+    void hello();
+
     size_t id;
     StringPtr serialNumber;
 
     std::thread acqThread;
+    std::thread acqThread2;
     std::condition_variable cv;
 
     std::chrono::steady_clock::time_point startTime;
