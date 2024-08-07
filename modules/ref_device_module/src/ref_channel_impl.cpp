@@ -56,7 +56,8 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 
 
 
-mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
+int node_id = 40415;
 
 int x_buffer_size = 64; 
 float x_buffer[64];
@@ -245,7 +246,7 @@ void RefChannelImpl::initMSCL(uint8_t section)
         // create the BaseStation, passing in the connection
         mscl::BaseStation basestation(connection);
 
-        mscl::WirelessNode node(12345, basestation);
+        mscl::WirelessNode node(node_id, basestation);
 
         mscl::PingResponse response = node.ping();
 
@@ -694,11 +695,17 @@ Int RefChannelImpl::getDeltaT(const double sr) const
 
 void RefChannelImpl::buildSignalDescriptors()
 {
-    const auto valueDescriptor = DataDescriptorBuilder()
-                                 .setSampleType(SampleType::Float64)
-                                 .setUnit(Unit("V", -1, "volts", "voltage"))
-                                 .setValueRange(customRange)
-                                 .setName("AI " + std::to_string(index + 1));
+    //const auto valueDescriptor = DataDescriptorBuilder()
+    //                             .setSampleType(SampleType::Float64)
+    //                             .setUnit(Unit("V", -1, "volts", "voltage"))
+    //                             .setValueRange(customRange)
+    //                             .setName("AI " + std::to_string(index + 1));
+
+     const auto valueDescriptor = DataDescriptorBuilder()
+                                  .setSampleType(SampleType::Float64)
+                                  .setUnit(Unit("g"))
+                                  .setValueRange(customRange)
+                                  .setName("AXIS " + std::to_string(index + 1));
 
     if (clientSideScaling)
     {
@@ -752,7 +759,20 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate) const
 
 void RefChannelImpl::createSignals()
 {
-    valueSignal = createAndAddSignal(fmt::format("AI{}", index));
+    if (index == 0)
+    {
+        valueSignal = createAndAddSignal(fmt::format("G-Link-200 Axis X"));
+    }
+    if (index == 1)
+    {
+        valueSignal = createAndAddSignal(fmt::format("G-Link-200 Axis Y"));
+    }
+    if (index == 2)
+    {
+        valueSignal = createAndAddSignal(fmt::format("G-Link-200 Axis Z"));
+    }
+
+    //valueSignal = createAndAddSignal(fmt::format("ACCEL AXIS {}", index));
     timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
     valueSignal.setDomainSignal(timeSignal);
 }
