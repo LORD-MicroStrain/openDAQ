@@ -56,8 +56,8 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 
 
 
-mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
-int node_id = 40415;
+mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+int node_id = 12345;
 
 int x_buffer_size = 64; 
 float x_buffer[64];
@@ -315,8 +315,6 @@ void RefChannelImpl::initMSCL(uint8_t section)
             network.startSampling();
         //node.startNonSyncSampling();
 
-            while (1)
-                fetch_MSCL_data(1); 
     }
 }
 
@@ -557,6 +555,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
     auto newSamples = samplesSinceStart - samplesGenerated;
 
+    fetch_MSCL_data(1); 
+
     if (newSamples > 0)
     {
         if (!fixedPacketSize)
@@ -642,11 +642,11 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 
 
                     if (this->name == "RefCh0")
-                        buffer[i] = x_release()*100;
+                        buffer[i] = x_release();
                     if (this->name == "RefCh1")
-                        buffer[i] = y_release() * 100; 
+                        buffer[i] = y_release(); 
                     if (this->name == "RefCh2")
-                        buffer[i] = z_release() * 100;
+                        buffer[i] = z_release();
                 }  
                 break;
             }
