@@ -58,6 +58,183 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 
 mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 
+int x_buffer_size = 64; 
+float x_buffer[64];
+int x_read = 0;
+int x_write = 0; 
+bool x_first_pass = 1;
+
+void x_add(float element)
+{
+    if (x_first_pass)
+    {
+        x_buffer[x_write] = element;
+
+        if (x_write == x_buffer_size-1)
+            x_write = 0;
+        else
+            x_write++;
+
+        x_first_pass = 0; 
+    }
+    else
+    {
+        if (x_read == x_write)
+        {
+            x_buffer[x_write] = element;
+
+            if (x_write == x_buffer_size-1)
+                x_write = 0;
+            else
+                x_write++;
+
+            if (x_read == x_buffer_size-1)
+                x_read = 0;
+            else
+                x_read++;
+        }
+        else
+        {
+            x_buffer[x_write] = element;
+
+            if (x_write == x_buffer_size-1)
+                x_write = 0;
+            else
+                x_write++;
+        }
+    }
+}
+
+float x_release()
+{
+    float temp = x_buffer[x_read];
+
+    if (x_read == x_buffer_size-1)
+        x_read = 0;
+    else
+        x_read++;
+
+    return temp; 
+}
+
+int y_buffer_size = 64; 
+float y_buffer[64];
+int y_read = 0;
+int y_write = 0; 
+bool y_first_pass = 1;
+
+void y_add(float element)
+{
+    if (y_first_pass)
+    {
+        y_buffer[y_write] = element;
+
+        if (y_write == y_buffer_size-1)
+            y_write = 0;
+        else
+            y_write++;
+
+        y_first_pass = 0; 
+    }
+    else
+    {
+        if (y_read == y_write)
+        {
+            y_buffer[y_write] = element;
+
+            if (y_write == y_buffer_size-1)
+                y_write = 0;
+            else
+                y_write++;
+
+            if (y_read == y_buffer_size-1)
+                y_read = 0;
+            else
+                y_read++;
+        }
+        else
+        {
+            y_buffer[y_write] = element;
+
+            if (y_write == y_buffer_size-1)
+                y_write = 0;
+            else
+                y_write++;
+        }
+    }
+}
+
+float y_release()
+{
+    float temp = y_buffer[y_read];
+
+    if (y_read == y_buffer_size-1)
+        y_read = 0;
+    else
+        y_read++;
+
+    return temp; 
+}
+
+int z_buffer_size = 64; 
+float z_buffer[64];
+int z_read = 0;
+int z_write = 0; 
+bool z_first_pass = 1;
+
+void z_add(float element)
+{
+    if (z_first_pass)
+    {
+        z_buffer[z_write] = element;
+
+        if (z_write == z_buffer_size-1)
+            z_write = 0;
+        else
+            z_write++;
+
+        z_first_pass = 0; 
+    }
+    else
+    {
+        if (z_read == z_write)
+        {
+            z_buffer[z_write] = element;
+
+            if (z_write == z_buffer_size-1)
+                z_write = 0;
+            else
+                z_write++;
+
+            if (z_read == z_buffer_size-1)
+                z_read = 0;
+            else
+                z_read++;
+        }
+        else
+        {
+            z_buffer[z_write] = element;
+
+            if (z_write == z_buffer_size-1)
+                z_write = 0;
+            else
+                z_write++;
+        }
+    }
+}
+
+float z_release()
+{
+    float temp = z_buffer[z_read];
+
+    if (z_read == z_buffer_size-1)
+        z_read = 0;
+    else
+        z_read++;
+
+    return temp; 
+}
+
 void RefChannelImpl::initMSCL(uint8_t section)
 {
     if (1)
@@ -104,7 +281,6 @@ void RefChannelImpl::initMSCL(uint8_t section)
                 break;
         }
 
-
         // create a WirelessNodeConfig which is used to set all node configuration options
         mscl::WirelessNodeConfig config;
 
@@ -137,65 +313,38 @@ void RefChannelImpl::initMSCL(uint8_t section)
         //if (init_check == 1)
             network.startSampling();
         //node.startNonSyncSampling();
-            
+
+            while (1)
+                fetch_MSCL_data(1); 
     }
 }
 
-mscl::uint64 then = 0;
 
-
-float RefChannelImpl::fetch_MSCL_data()
+void RefChannelImpl::fetch_MSCL_data(int num_data_points)
 {
     mscl::BaseStation basestation(connection);
-
     mscl::DataSweeps sweeps = basestation.getData(100, 1);
 
-    //mscl::ChannelData temp = sweeps[0].data(); 
-
-    int sweep_num = 1; 
     for (mscl::DataSweep sweep : sweeps)
     {
         mscl::ChannelData data = sweep.data();
 
-
-        // iterate over each point in the sweep (one point per channel)
-
-        int continue_count = 0;
-
-
-        for (mscl::WirelessDataPoint dataPoint : data)
+        int i = 0; 
+        for (mscl::WirelessDataPoint dataPoint : data) // iterate over each point in the sweep (one point per channel)
         {
-    
-           //std::cout << this->name << std::endl;
+            if (i == 0)
+                x_add(dataPoint.as_float());
 
-            if (this->name == "RefCh0")
-            {
-                std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
-                return dataPoint.as_float();  // get the value as a float
-            }
-            if (this->name == "RefCh1")
-            {
-                if (continue_count == 0)
-                {
-                    continue_count++;
-                    continue; 
-                }
-                std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
-                return dataPoint.as_float();  // get the value as a float
-            }
-            if (this->name == "RefCh2")
-            {
-                if (continue_count <= 1)
-                {
-                    continue_count++;
-                    continue; 
-                }
-                std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
-                return dataPoint.as_float();  // get the value as a float
-            }
+            if (i == 1)
+                y_add(dataPoint.as_float());
+
+            if (i == 2)
+                z_add(dataPoint.as_float());
+
+            i++;
         }
-        continue_count = 0; 
-    }
+
+    } 
 }
 
 
@@ -384,7 +533,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 512;  // PETER heres where sample rate is established
+    sampleRate = 300;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -451,7 +600,6 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
- float MSCL_val; 
 
 std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
@@ -474,8 +622,7 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
         else
             buffer = static_cast<double*>(dataPacket.getRawData());
 
-
-        MSCL_val = fetch_MSCL_data();
+        float temp_x;   
 
         switch(waveformType)
         {
@@ -491,12 +638,14 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
                 {
                     // buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
                     // noiseAmpl * dist(re);
+
+
                     if (this->name == "RefCh0")
-                        buffer[i] = MSCL_val;
+                        buffer[i] = x_release()*100;
                     if (this->name == "RefCh1")
-                        buffer[i] = MSCL_val;
+                        buffer[i] = y_release() * 100; 
                     if (this->name == "RefCh2")
-                        buffer[i] = MSCL_val;
+                        buffer[i] = z_release() * 100;
                 }  
                 break;
             }

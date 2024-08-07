@@ -79,7 +79,8 @@ private:
     uint64_t packetSize;
 
     void initMSCL(uint8_t section);
-    float fetch_MSCL_data();
+    void fetch_MSCL_data(int num_data_points);
+
 
     void initProperties();
     void packetSizeChangedInternal();

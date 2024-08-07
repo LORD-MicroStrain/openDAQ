@@ -16,29 +16,104 @@ using namespace daq;
 mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 mscl::BaseStation basestation(connection);
 
-mscl::uint64 now , then; 
+float x_buffer[5]; 
+int y_buffer[5]; 
+int z_buffer[5]; 
+
+int x_read = 0;
+int x_write = 0; 
 
 
-float fetch_MSCL_data()
+bool x_first_pass = 1;
+
+void x_add(float element)
 {
-    mscl::DataSweeps sweeps = basestation.getData(0, 1);
+    if (x_first_pass)
+    {
+        x_buffer[x_write] = element;
+
+        if (x_write == 4)
+            x_write = 0;
+        else
+            x_write++;
+
+        x_first_pass = 0; 
+    }
+    else
+    {
+        if (x_read == x_write)
+        {
+            x_buffer[x_write] = element;
+
+            if (x_write == 4)
+                x_write = 0;
+            else
+                x_write++;
+
+            if (x_read == 4)
+                x_read = 0;
+            else
+                x_read++;
+        }
+        else
+        {
+            x_buffer[x_write] = element;
+
+            if (x_write == 4)
+                x_write = 0;
+            else
+                x_write++;
+        }
+    }
+}
+
+float x_release()
+{
+    float temp = x_buffer[x_read];
+
+    if (x_read == 4)
+        x_read = 0;
+    else
+        x_read++;
+
+    return temp; 
+}
+
+float cou = 0; 
+
+void fetch_MSCL_data()
+{
+    mscl::DataSweeps sweeps = basestation.getData(1000, 3);
 
     int sweep_num = 1;
     for (mscl::DataSweep sweep : sweeps)
     {
         mscl::ChannelData data = sweep.data();
-        now = sweep.timestamp().nanoseconds();
-        std::cout << "new val: " << (now - then) / 1000000 << "ms" << std::endl << std::endl; 
+        std::cout << sweep.tick() << std::endl;
 
         // iterate over each point in the sweep (one point per channel)
         for (mscl::WirelessDataPoint dataPoint : data)
         {
             std::cout << dataPoint.channelName() << " value fetched: " << dataPoint.as_float() << std::endl << std::endl;
+
+            x_add(cou++);
+
+            std::cout << "buffer: " << std::endl;
+
+
+            for (float x : x_buffer)
+                std::cout << x << std::endl;
+
+            std::cout << "-----" << std::endl;
+
+            std::cout << "read order: " << std::endl;
+
+            for (int k = 0; k < 5; k++)
+                std::cout << x_release() << std::endl;
+
+            std::cout << "-----" << std::endl;
         }
     }
-
-    then = now; 
-    return 1; 
 }
 
 int main(int /*argc*/, const char* /*argv*/[])
@@ -87,7 +162,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     config.inactivityTimeout(0xFFFF);
     config.activeChannels(mscl::ChannelMask::ChannelMask(0b111)); // activate channels 1 through three using 0b111 bit mask  
     config.samplingMode(mscl::WirelessTypes::samplingMode_sync);
-    config.sampleRate(mscl::WirelessTypes::sampleRate_32Hz);
+    config.sampleRate(mscl::WirelessTypes::sampleRate_1Hz);
     config.unlimitedDuration(true);
 
     // apply the configuration to the Node
