@@ -78,6 +78,8 @@ private:
     bool fixedPacketSize;
     uint64_t packetSize;
 
+    std::thread acqThread;
+
     void initMSCL(uint8_t section);
     void fetch_MSCL_data(int num_data_points);
 
@@ -98,6 +100,8 @@ private:
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
+
+    void hello();
 };
 
 END_NAMESPACE_REF_DEVICE_MODULE

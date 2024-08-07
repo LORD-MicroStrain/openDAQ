@@ -52,9 +52,20 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     buildSignalDescriptors();
 
     initMSCL(0);
+
+    //if (this->name == "RefCh0")
+    //{
+  //      acqThread = std::thread{&RefChannelImpl::hello, this};
+    //}
 }
 
-
+void RefChannelImpl::hello()
+{
+    while (1)
+    {
+        std::cout << "Hello\n";
+    }
+}
 
 mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
 //int node_id = 12345;
