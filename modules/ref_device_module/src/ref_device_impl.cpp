@@ -60,11 +60,21 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
+
+
+
+auto set = std::chrono::system_clock::now();
+
+
 void RefDeviceImpl::hello()
 {
     while (1)
     {
-        RefChannelImpl::fetch_MSCL_data(0); 
+        auto now = set.time_since_epoch();
+
+       RefChannelImpl::fetch_MSCL_data(0);
+
+       auto then = now; 
         //std::cout << "Hello\n";
     }
 }
