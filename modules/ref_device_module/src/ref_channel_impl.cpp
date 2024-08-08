@@ -65,6 +65,26 @@ public:
         return (!full && (head == tail));
     }
 
+    void printBuffer() const
+    {
+        std::cout << "Buffer contents: ";
+        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
+        {
+            std::cout << buffer[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    void printReadOrder() const
+    {
+        std::cout << "Read order: ";
+        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
+        {
+            std::cout << buffer[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+
     bool isFull() const
     {
         return full;
@@ -155,13 +175,10 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 
 mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 int node_id = 12345;
+//int node_id = 5;
 //int node_id = 40415;
 
 
-
-CircularBuffer <float> x_buffer(256);
-CircularBuffer<int> y_buffer(256);
-CircularBuffer<int> z_buffer(256);
 
 /*
 int x_buffer_size = 64; 
@@ -424,16 +441,24 @@ void RefChannelImpl::initMSCL(uint8_t section)
 }
 
 
+CircularBuffer <float> x_buffer(128);
+CircularBuffer <float> y_buffer(128);
+CircularBuffer <float> z_buffer(128);
+
 void RefChannelImpl::fetch_MSCL_data(int num_data_points)
 {
     mscl::BaseStation basestation(connection);
-    mscl::DataSweeps sweeps = basestation.getData(100, 1);
+    mscl::DataSweeps sweeps = basestation.getData(100, 0);
 
     for (mscl::DataSweep sweep : sweeps)
     {
         mscl::ChannelData data = sweep.data();
 
-        int i = 0; 
+        x_buffer.add(data[0].as_float()); 
+        y_buffer.add(data[1].as_float()); 
+        z_buffer.add(data[2].as_float()); 
+
+        /* int i = 0; 
         for (mscl::WirelessDataPoint dataPoint : data) // iterate over each point in the sweep (one point per channel)
         {
             if (i == 0)
@@ -446,8 +471,7 @@ void RefChannelImpl::fetch_MSCL_data(int num_data_points)
                 z_buffer.add(dataPoint.as_float());
 
             i++;
-        }
-
+        }*/
     } 
 }
 
@@ -637,7 +661,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 100;  // PETER heres where sample rate is established
+    sampleRate = 500;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -742,10 +766,6 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
             {
                 for (uint64_t i = 0; i < newSamples; i++)
                 {
-                    // buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
-                    // noiseAmpl * dist(re);
-
-
                     if (this->name == "RefCh0")
                         buffer[i] = x_buffer.get() * 100;
                     if (this->name == "RefCh1")
