@@ -65,7 +65,7 @@ void RefDeviceImpl::hello()
     while (1)
     {
         RefChannelImpl::fetch_MSCL_data(0); 
-        std::cout << "Hello\n";
+        //std::cout << "Hello\n";
     }
 }
 

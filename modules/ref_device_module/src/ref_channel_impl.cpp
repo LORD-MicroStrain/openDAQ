@@ -14,6 +14,7 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <iostream>
 #include <chrono>
+#include <vector>
 #include <thread>
 #include <ctime>
 #include "mscl/mscl.h"
@@ -21,6 +22,98 @@
 #define PI 3.141592653589793
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
+
+
+template <typename T>
+class CircularBuffer
+{
+public:
+    CircularBuffer(size_t size)
+        : buffer(size)
+        , maxSize(size)
+        , head(0)
+        , tail(0)
+        , full(false)
+    {
+    }
+
+    void add(T item)
+    {
+        buffer[head] = item;
+        if (full)
+        {
+            tail = (tail + 1) % maxSize;
+        }
+        head = (head + 1) % maxSize;
+        full = head == tail;
+    }
+
+    T get()
+    {
+        if (isEmpty())
+        {
+            return 0; 
+        }
+        T item = buffer[tail];
+        full = false;
+        tail = (tail + 1) % maxSize;
+        return item;
+    }
+
+    bool isEmpty() const
+    {
+        return (!full && (head == tail));
+    }
+
+    bool isFull() const
+    {
+        return full;
+    }
+
+    size_t size() const
+    {
+        size_t size = maxSize;
+        if (!full)
+        {
+            if (head >= tail)
+            {
+                size = head - tail;
+            }
+            else
+            {
+                size = maxSize + head - tail;
+            }
+        }
+        return size;
+    }
+
+private:
+    std::vector<T> buffer;
+    size_t maxSize;
+    size_t head;
+    size_t tail;
+    bool full;
+};
+/*
+int main()
+{
+    CircularBuffer<int> cb(5);
+
+    cb.add(1);
+    cb.add(2);
+    cb.add(3);
+    cb.add(4);
+    cb.add(5);
+
+    std::cout << "Buffer contents: ";
+    while (!cb.isEmpty())
+    {
+        std::cout << cb.get() << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}*/
 
 RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init)
     : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
@@ -72,6 +165,13 @@ mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 int node_id = 12345;
 //int node_id = 40415;
 
+
+
+CircularBuffer <float> x_buffer(256);
+CircularBuffer<int> y_buffer(256);
+CircularBuffer<int> z_buffer(256);
+
+/*
 int x_buffer_size = 64; 
 float x_buffer[64];
 int x_read = 0;
@@ -248,7 +348,7 @@ float z_release()
 
     return temp; 
 }
-
+*/
 void RefChannelImpl::initMSCL(uint8_t section)
 {
     if (1)
@@ -345,13 +445,13 @@ void RefChannelImpl::fetch_MSCL_data(int num_data_points)
         for (mscl::WirelessDataPoint dataPoint : data) // iterate over each point in the sweep (one point per channel)
         {
             if (i == 0)
-                x_add(dataPoint.as_float());
+                x_buffer.add(dataPoint.as_float());
 
             if (i == 1)
-                y_add(dataPoint.as_float());
+                y_buffer.add(dataPoint.as_float());
 
             if (i == 2)
-                z_add(dataPoint.as_float());
+                z_buffer.add(dataPoint.as_float());
 
             i++;
         }
@@ -655,11 +755,11 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 
 
                     if (this->name == "RefCh0")
-                        buffer[i] = x_release() * 100;
+                        buffer[i] = x_buffer.get() * 100;
                     if (this->name == "RefCh1")
-                        buffer[i] = y_release() * 100; 
+                        buffer[i] = y_buffer.get() * 100; 
                     if (this->name == "RefCh2")
-                        buffer[i] = z_release() * 100;
+                        buffer[i] = z_buffer.get() * 100;     
                 }  
                 break;
             }
@@ -825,5 +925,7 @@ void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, b
         needsSignalTypeChanged = false;
     }
 }
+
+
 
 END_NAMESPACE_REF_DEVICE_MODULE
