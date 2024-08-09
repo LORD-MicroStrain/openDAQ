@@ -46,7 +46,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
-    //acqThread2 = std::thread{ &RefDeviceImpl::hello, this };
+    acqThread2 = std::thread{ &RefDeviceImpl::hello, this };
 }
 
 RefDeviceImpl::~RefDeviceImpl()
