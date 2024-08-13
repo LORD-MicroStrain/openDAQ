@@ -19,8 +19,17 @@ int main(int /*argc*/, const char* /*argv*/[])
     instance.setRootDevice("daqref://device0");
     
     // Start streaming and openDAQ OpcUa servers 
-    instance.addStandardServers();
-    
+    //instance.addStandardServers();
+
+
+    const auto servers = instance.addStandardServers();
+
+    for (const auto& server : servers)
+    {
+        server.enableDiscovery();
+        std::cout << server.getId() << std::endl << std::endl;
+    }
+
     std::cout << "Press \"enter\" to exit the application..." << std::endl;
     std::cin.get();
     return 0;

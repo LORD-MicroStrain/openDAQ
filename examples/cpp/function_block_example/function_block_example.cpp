@@ -14,6 +14,7 @@ using namespace daq;
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
+    std::cout << " " << MODULE_PATH;
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
@@ -26,16 +27,20 @@ int main(int /*argc*/, const char* /*argv*/[])
     FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Set renderer to draw 2.5s of data
-    renderer.setPropertyValue("Duration", 2.5);
+    renderer.setPropertyValue("Duration", 1);
 
     // Get channel and signal of reference device
-    const auto x_Channel = device.getChannels()[0];
-    const auto y_Channel = device.getChannels()[1];
-    const auto z_Channel = device.getChannels()[2];
+    //const auto x_Channel = device.getChannels()[0];
+    //const auto y_Channel = device.getChannels()[0];
+    //const auto z_Channel = device.getChannels()[0];
 
-    const auto x_Signal = x_Channel.getSignals()[0];
-    const auto y_Signal = y_Channel.getSignals()[0];
-    const auto z_Signal = z_Channel.getSignals()[0];
+    const auto temp = device.getChannels()[0].getSignalsRecursive(); 
+
+    //const auto x_Signal = device.getChannels()[0].getSignals()[0];
+    //const auto y_Signal = device.getChannels()[0].getSignals()[1];
+    //const auto z_Signal = device.getChannels()[0].getSignals()[2];
+    //const auto y_Signal = y_Channel.getSignals()[1];
+    //const auto z_Signal = z_Channel.getSignals()[2];
 
 /*
     const auto sineChannel = device.getChannels()[0];
@@ -47,10 +52,11 @@ int main(int /*argc*/, const char* /*argv*/[])
     statistics.getInputPorts()[0].connect(sineSignal);
     const auto averagedSine = statistics.getSignalsRecursive()[0];
 */
+    const auto input_Temp = renderer.getInputPorts(); 
 
-    renderer.getInputPorts()[0].connect(x_Signal);  
-    renderer.getInputPorts()[1].connect(y_Signal);
-    renderer.getInputPorts()[2].connect(z_Signal);
+    renderer.getInputPorts()[0].connect(temp[0]);  
+    renderer.getInputPorts()[1].connect(temp[1]);
+    renderer.getInputPorts()[2].connect(temp[2]);
 
     // Process and render data for 10s, modulating the amplitude
     //double ampl_step = 0.1;

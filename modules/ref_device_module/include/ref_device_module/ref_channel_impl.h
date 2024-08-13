@@ -52,6 +52,9 @@ public:
     static void fetch_MSCL_data(int num_data_points);
 
 
+    std::thread fetchThread;
+
+
 protected:
     void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
 
@@ -76,7 +79,13 @@ private:
     std::default_random_engine re;
     std::normal_distribution<double> dist;
     SignalConfigPtr valueSignal;
+    SignalConfigPtr x_signal;
+    SignalConfigPtr y_signal;
+    SignalConfigPtr z_signal;
     SignalConfigPtr timeSignal;
+    SignalConfigPtr x_time;
+    SignalConfigPtr y_time;
+    SignalConfigPtr z_time;
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
@@ -85,7 +94,6 @@ private:
 
     void initMSCL(uint8_t section);
     
-    std::thread fetchThread;
     
 
     void initProperties();
@@ -99,7 +107,7 @@ private:
     void resetCounter();
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
     void createSignals();
-    std::tuple<PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
+    std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
     [[nodiscard]] Int getDeltaT(const double sr) const;
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;

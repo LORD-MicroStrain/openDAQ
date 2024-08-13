@@ -60,22 +60,11 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-
-
-
-auto set = std::chrono::system_clock::now();
-
-
 void RefDeviceImpl::hello()
 {
     while (1)
     {
-        auto now = set.time_since_epoch();
-
        RefChannelImpl::fetch_MSCL_data(0);
-
-       auto then = now; 
-        //std::cout << "Hello\n";
     }
 }
 
@@ -194,7 +183,7 @@ void RefDeviceImpl::acqLoop()
 
 void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
-    size_t numberOfChannels = 3;
+    size_t numberOfChannels = 1;
     bool enableCANChannel = false;
 
     if (config.assigned())

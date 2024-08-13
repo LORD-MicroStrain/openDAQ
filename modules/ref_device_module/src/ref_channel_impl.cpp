@@ -441,43 +441,30 @@ void RefChannelImpl::initMSCL(uint8_t section)
 }
 
 
-CircularBuffer <float> x_buffer(128);
-CircularBuffer <float> y_buffer(128);
-CircularBuffer <float> z_buffer(128);
+CircularBuffer <float> x_buffer(512);
+CircularBuffer <float> y_buffer(512);
+CircularBuffer <float> z_buffer(512);
 
 void RefChannelImpl::fetch_MSCL_data(int num_data_points)
 {
     mscl::BaseStation basestation(connection);
-    mscl::DataSweeps sweeps = basestation.getData(50, 0);
+    mscl::DataSweeps sweeps = basestation.getData(1000, 0);
 
     for (mscl::DataSweep sweep : sweeps)
-    {
-        mscl::ChannelData data = sweep.data();
+    {mscl::ChannelData data = sweep.data();
 
-        if (data[0].channelId() == 112)
+        if(data.size() > 4)
+            continue;
+        /*
+        if (data[2].as_float() * 100 > -5.0)
             continue; 
 
-        //if (data[2].as_float() > -5)
-           // continue; 
-        
+        if (data[1].as_float() * 100 < 2.5)
+            continue; */
+
         x_buffer.add(data[0].as_float()); 
         y_buffer.add(data[1].as_float()); 
         z_buffer.add(data[2].as_float());
-
-        /* int i = 0; 
-        for (mscl::WirelessDataPoint dataPoint : data) // iterate over each point in the sweep (one point per channel)
-        {
-            if (i == 0)
-                x_buffer.add(dataPoint.as_float());
-
-            if (i == 1)
-                y_buffer.add(dataPoint.as_float());
-
-            if (i == 2)
-                z_buffer.add(dataPoint.as_float());
-
-            i++;
-        }*/
     } 
 }
 
@@ -667,7 +654,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 300;  // PETER heres where sample rate is established
+    sampleRate = 512;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -688,7 +675,7 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     std::scoped_lock lock(sync);
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
-    auto newSamples = samplesSinceStart - samplesGenerated;
+    int64_t newSamples = samplesSinceStart - samplesGenerated;
 
     std::cout << "channel: " << index << "\n";    
     std::cout << "samples requested: " << newSamples << "\n";    
@@ -697,40 +684,18 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     {
         if (!fixedPacketSize)
         {
-            if (valueSignal.getActive())
+            if (x_signal.getActive())
             {
                 const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+                auto [x_packet, y_packet, z_packet, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
 
-                valueSignal.sendPacket(std::move(dataPacket));
+                x_signal.sendPacket(std::move(x_packet));
+                y_signal.sendPacket(std::move(y_packet));
+                z_signal.sendPacket(std::move(z_packet));
                 timeSignal.sendPacket(std::move(domainPacket));
             }
 
             samplesGenerated = samplesSinceStart;
-        }
-        else
-        {
-            auto packets = List<IPacket>();
-            auto domainPackets = List<IPacket>();
-            while (newSamples >= packetSize)
-            {
-                if (valueSignal.getActive())
-                {
-                    const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                    auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
-                    packets.pushBack(std::move(dataPacket));
-                    domainPackets.pushBack(std::move(domainPacket));
-                }
-
-                samplesGenerated += packetSize;
-                newSamples -= packetSize;
-            }
-
-			if (!packets.empty())
-            {           
-                valueSignal.sendPackets(std::move(packets));
-                timeSignal.sendPackets(std::move(domainPackets));
-            }
         }
     }
 
@@ -738,84 +703,29 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 }
 
 
-std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
+std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
     auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
-    DataPacketPtr dataPacket;
-    if (waveformType == WaveformType::ConstantValue)
+
+    DataPacketPtr x_packet, y_packet, z_packet;
+
+    x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), newSamples);
+    y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), newSamples);
+    z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), newSamples);
+
+    double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
+    double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
+    double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
+
+    for (uint64_t i = 0; i < newSamples; i++)
     {
-        dataPacket = ConstantDataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples, constantValue);
-    }
-    else
-    {
-        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
 
-        double* buffer;
+        x_packet_buffer[i] = x_buffer.get() * 100;
+        y_packet_buffer[i] = y_buffer.get() * 100;
+        z_packet_buffer[i] = z_buffer.get() * 100;
 
-        if (clientSideScaling)
-        {
-            buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
-        }
-        else
-            buffer = static_cast<double*>(dataPacket.getRawData());
-
-
-        switch(waveformType)
-        {
-            case WaveformType::Counter:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                    buffer[i] = static_cast<double>(counter++) / sampleRate;
-                break;
-            }
-            case WaveformType::Sine:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                {
-
-                    if (this->name == "RefCh0")
-                        buffer[i] = x_buffer.get() * 100; 
-                    if (this->name == "RefCh1")
-                        buffer[i] = y_buffer.get() * 100; 
-                    if (this->name == "RefCh2")
-                        buffer[i] = z_buffer.get() * 100;
-
-                }  
-                break;
-            }
-            case WaveformType::Rect:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                {
-                    double val = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i)));
-                    val = val > 0 ? 1.0 : -1.0;
-                    buffer[i] = val * ampl + dc + noiseAmpl * dist(re);
-                }
-                break;
-            }
-            case WaveformType::None:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                    buffer[i] = dc + noiseAmpl * dist(re);
-                break;
-            }
-            case WaveformType::ConstantValue:
-                break;
-        }
-
-        if (clientSideScaling)
-        {
-            double f = std::pow(2, 24);
-            auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
-            for (size_t i = 0; i < newSamples; i++)
-                *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
-
-            std::free(static_cast<void*>(buffer));
-        }
-
-    }
-
-    return {dataPacket, domainPacket};
+    }  
+    return {x_packet, y_packet, z_packet, domainPacket};
 }
 
 Int RefChannelImpl::getDeltaT(const double sr) const
@@ -853,7 +763,10 @@ void RefChannelImpl::buildSignalDescriptors()
     }
 
 
-    valueSignal.setDescriptor(valueDescriptor.build());
+    x_signal.setDescriptor(valueDescriptor.build());
+    y_signal.setDescriptor(valueDescriptor.build());
+    z_signal.setDescriptor(valueDescriptor.build());
+    
 
     deltaT = getDeltaT(sampleRate);
 
@@ -892,22 +805,20 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate) const
 
 void RefChannelImpl::createSignals()
 {
-    if (index == 0)
-    {
-        valueSignal = createAndAddSignal(fmt::format("G-Link-200 Axis X"));
-    }
-    if (index == 1)
-    {
-        valueSignal = createAndAddSignal(fmt::format("G-Link-200 Axis Y"));
-    }
-    if (index == 2)
-    {
-        valueSignal = createAndAddSignal(fmt::format("G-Link-200 Axis Z"));
-    }
+    x_signal = createAndAddSignal(fmt::format("G-Link-200 Axis X")); 
+    y_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Y")); 
+    z_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Z")); 
+
+    timeSignal = createAndAddSignal(fmt::format("AI{}Time", 0), nullptr, true, true);
+
+    x_signal.setDomainSignal(timeSignal);
+    y_signal.setDomainSignal(timeSignal);
+    z_signal.setDomainSignal(timeSignal);
+
 
     //valueSignal = createAndAddSignal(fmt::format("ACCEL AXIS {}", index));
-    timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
-    valueSignal.setDomainSignal(timeSignal);
+    //timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
+    //valueSignal.setDomainSignal(timeSignal);
 }
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
