@@ -23,7 +23,103 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+/// FOR FLOATS
+//template <typename T>
+//class CircularBuffer
+//{
+//public:
+//    CircularBuffer(size_t size)
+//        : buffer(size)
+//        , maxSize(size)
+//        , head(0)
+//        , tail(0)
+//        , full(false)
+//    {
+//    }
+//
+//    void add(T item)
+//    {
+//        buffer[head] = item;
+//        if (full)
+//        {
+//            tail = (tail + 1) % maxSize;
+//        }
+//        head = (head + 1) % maxSize;
+//        full = head == tail;
+//    }
+//
+//    T get()
+//    {
+//        if (isEmpty())
+//        {
+//            return 0;
+//        }
+//        T item = buffer[tail];
+//        full = false;
+//        tail = (tail + 1) % maxSize;
+//        return item;
+//    }
+//
+//    bool isEmpty() const
+//    {
+//        return (!full && (head == tail));
+//    }
+//
+//    void printBuffer() const
+//    {
+//        std::cout << "Buffer contents: ";
+//        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
+//        {
+//            std::cout << buffer[i] << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//
+//    void printReadOrder() const
+//    {
+//        std::cout << "Read order: ";
+//        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
+//        {
+//            std::cout << buffer[i] << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//
+//    bool isFull() const
+//    {
+//        return full;
+//    }
+//
+//    size_t size() const
+//    {
+//        size_t size = maxSize;
+//        if (!full)
+//        {
+//            if (head >= tail)
+//            {
+//                size = head - tail;
+//            }
+//            else
+//            {
+//                size = maxSize + head - tail;
+//            }
+//        }
+//        return size;
+//    }
+//
+//private:
+//    std::vector<T> buffer;
+//    size_t maxSize;
+//    size_t head;
+//    size_t tail;
+//    bool full;
+//};
 
+
+/// <summary> for MSCL sweeps
+/// 
+/// </summary>
+/// <typeparam name="T"></typeparam>
 template <typename T>
 class CircularBuffer
 {
@@ -52,7 +148,7 @@ public:
     {
         if (isEmpty())
         {
-            return 0; 
+            return buffer[tail];  // total hack for supporting sweeps
         }
         T item = buffer[tail];
         full = false;
@@ -134,6 +230,20 @@ int main()
 
     return 0;
 }*/
+mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
+// int node_id = 12345;
+// int node_id = 5;
+int node_id = 40415;
+
+// CircularBuffer<float> x_buffer(128);
+// CircularBuffer<float> y_buffer(128);
+// CircularBuffer<float> z_buffer(128);
+CircularBuffer<mscl::DataSweep> sweep_buffer(128);
+
+int num_sweeps = 0;
+bool data_flowing = false;
+
+std::mutex load_buffer_lock;
 
 RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init)
     : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
@@ -171,193 +281,6 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 }
 
 
-
-
-mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
-int node_id = 12345;
-//int node_id = 5;
-//int node_id = 40415;
-
-
-
-/*
-int x_buffer_size = 64; 
-float x_buffer[64];
-int x_read = 0;
-int x_write = 0; 
-bool x_first_pass = 1;
-
-void x_add(float element)
-{
-    if (x_first_pass)
-    {
-        x_buffer[x_write] = element;
-
-        if (x_write == x_buffer_size-1)
-            x_write = 0;
-        else
-            x_write++;
-
-        x_first_pass = 0; 
-    }
-    else
-    {
-        if (x_read == x_write)
-        {
-            x_buffer[x_write] = element;
-
-            if (x_write == x_buffer_size-1)
-                x_write = 0;
-            else
-                x_write++;
-
-            if (x_read == x_buffer_size-1)
-                x_read = 0;
-            else
-                x_read++;
-        }
-        else
-        {
-            x_buffer[x_write] = element;
-
-            if (x_write == x_buffer_size-1)
-                x_write = 0;
-            else
-                x_write++;
-        }
-    }
-}
-
-float x_release()
-{
-    float temp = x_buffer[x_read];
-
-    if (x_read == x_buffer_size-1)
-        x_read = 0;
-    else
-        x_read++;
-
-    return temp; 
-}
-
-int y_buffer_size = 64; 
-float y_buffer[64];
-int y_read = 0;
-int y_write = 0; 
-bool y_first_pass = 1;
-
-void y_add(float element)
-{
-    if (y_first_pass)
-    {
-        y_buffer[y_write] = element;
-
-        if (y_write == y_buffer_size-1)
-            y_write = 0;
-        else
-            y_write++;
-
-        y_first_pass = 0; 
-    }
-    else
-    {
-        if (y_read == y_write)
-        {
-            y_buffer[y_write] = element;
-
-            if (y_write == y_buffer_size-1)
-                y_write = 0;
-            else
-                y_write++;
-
-            if (y_read == y_buffer_size-1)
-                y_read = 0;
-            else
-                y_read++;
-        }
-        else
-        {
-            y_buffer[y_write] = element;
-
-            if (y_write == y_buffer_size-1)
-                y_write = 0;
-            else
-                y_write++;
-        }
-    }
-}
-
-float y_release()
-{
-    float temp = y_buffer[y_read];
-
-    if (y_read == y_buffer_size-1)
-        y_read = 0;
-    else
-        y_read++;
-
-    return temp; 
-}
-
-int z_buffer_size = 64; 
-float z_buffer[64];
-int z_read = 0;
-int z_write = 0; 
-bool z_first_pass = 1;
-
-void z_add(float element)
-{
-    if (z_first_pass)
-    {
-        z_buffer[z_write] = element;
-
-        if (z_write == z_buffer_size-1)
-            z_write = 0;
-        else
-            z_write++;
-
-        z_first_pass = 0; 
-    }
-    else
-    {
-        if (z_read == z_write)
-        {
-            z_buffer[z_write] = element;
-
-            if (z_write == z_buffer_size-1)
-                z_write = 0;
-            else
-                z_write++;
-
-            if (z_read == z_buffer_size-1)
-                z_read = 0;
-            else
-                z_read++;
-        }
-        else
-        {
-            z_buffer[z_write] = element;
-
-            if (z_write == z_buffer_size-1)
-                z_write = 0;
-            else
-                z_write++;
-        }
-    }
-}
-
-float z_release()
-{
-    float temp = z_buffer[z_read];
-
-    if (z_read == z_buffer_size-1)
-        z_read = 0;
-    else
-        z_read++;
-
-    return temp; 
-}
-*/
 void RefChannelImpl::initMSCL(uint8_t section)
 {
     if (1)
@@ -441,31 +364,24 @@ void RefChannelImpl::initMSCL(uint8_t section)
 }
 
 
-CircularBuffer <float> x_buffer(512);
-CircularBuffer <float> y_buffer(512);
-CircularBuffer <float> z_buffer(512);
-
 void RefChannelImpl::fetch_MSCL_data(int num_data_points)
 {
+    load_buffer_lock.lock();
     mscl::BaseStation basestation(connection);
-    mscl::DataSweeps sweeps = basestation.getData(1000, 0);
+
+    mscl::DataSweeps sweeps = basestation.getData(100, 0);
 
     for (mscl::DataSweep sweep : sweeps)
-    {mscl::ChannelData data = sweep.data();
+    {
+        //mscl::ChannelData data = sweep.data();
 
-        if(data.size() > 4)
-            continue;
-        /*
-        if (data[2].as_float() * 100 > -5.0)
-            continue; 
+        //x_buffer.add(data[0].as_float()); 
+        //y_buffer.add(data[1].as_float()); 
+        //z_buffer.add(data[2].as_float()); 
 
-        if (data[1].as_float() * 100 < 2.5)
-            continue; */
-
-        x_buffer.add(data[0].as_float()); 
-        y_buffer.add(data[1].as_float()); 
-        z_buffer.add(data[2].as_float());
+        sweep_buffer.add(sweep);
     } 
+    load_buffer_lock.unlock();
 }
 
 
@@ -677,8 +593,8 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
     const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
     int64_t newSamples = samplesSinceStart - samplesGenerated;
 
-    std::cout << "channel: " << index << "\n";    
-    std::cout << "samples requested: " << newSamples << "\n";    
+    //std::cout << "channel: " << index << "\n";    
+    //std::cout << "samples requested: " << newSamples << "\n";    
 
     if (newSamples > 0)
     {
@@ -717,14 +633,17 @@ std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> RefChannelImpl::generateS
     double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
     double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
 
-    for (uint64_t i = 0; i < newSamples; i++)
+    if (sweep_buffer.size() >= newSamples)
     {
+        for (uint64_t i = 0; i < newSamples; i++)
+        {
+            mscl::DataSweep sweep = sweep_buffer.get();
 
-        x_packet_buffer[i] = x_buffer.get() * 100;
-        y_packet_buffer[i] = y_buffer.get() * 100;
-        z_packet_buffer[i] = z_buffer.get() * 100;
-
-    }  
+            x_packet_buffer[i] = sweep.data()[0].as_float();
+            y_packet_buffer[i] = sweep.data()[1].as_float();
+            z_packet_buffer[i] = sweep.data()[2].as_float();
+        }
+    }
     return {x_packet, y_packet, z_packet, domainPacket};
 }
 
