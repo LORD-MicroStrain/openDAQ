@@ -144,6 +144,11 @@ public:
         full = head == tail;
     }
 
+    uint64_t get_time()
+    {
+        return buffer[tail].timestamp().nanoseconds() / 1000; 
+    }
+
     T get()
     {
         if (isEmpty())
@@ -230,10 +235,11 @@ int main()
 
     return 0;
 }*/
-mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
-// int node_id = 12345;
-// int node_id = 5;
-int node_id = 40415;
+mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+mscl::BaseStation basestation(connection);
+int node_id = 12345;
+ //int node_id = 5;
+//int node_id = 40415;
 
 // CircularBuffer<float> x_buffer(128);
 // CircularBuffer<float> y_buffer(128);
@@ -275,9 +281,6 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     buildSignalDescriptors();
 
     initMSCL(0);
-
-
-   //fetchThread = std::thread{&RefChannelImpl::fetch_MSCL_data, this};
 }
 
 
@@ -289,7 +292,7 @@ void RefChannelImpl::initMSCL(uint8_t section)
         //mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 
         // create the BaseStation, passing in the connection
-        mscl::BaseStation basestation(connection);
+       // mscl::BaseStation basestation(connection);
 
         mscl::WirelessNode node(node_id, basestation);
 
@@ -364,12 +367,19 @@ void RefChannelImpl::initMSCL(uint8_t section)
 }
 
 
-void RefChannelImpl::fetch_MSCL_data(int num_data_points)
+void RefChannelImpl::fetch_MSCL_data()
 {
     load_buffer_lock.lock();
-    mscl::BaseStation basestation(connection);
 
-    mscl::DataSweeps sweeps = basestation.getData(100, 0);
+    mscl::DataSweeps sweeps = basestation.getData(1000, 0);
+
+
+        //auto now = sweep_buffer.get_time();
+
+        //std::cout << "fetch mscl time: " << now << std::endl;
+        //std::cout << "time since last fetch mscl stamp: " << now - then << std::endl; 
+
+        //then = now;
 
     for (mscl::DataSweep sweep : sweeps)
     {
@@ -379,11 +389,12 @@ void RefChannelImpl::fetch_MSCL_data(int num_data_points)
         //y_buffer.add(data[1].as_float()); 
         //z_buffer.add(data[2].as_float()); 
 
-        sweep_buffer.add(sweep);
+        if (sweep.data().size() < 4)  //avoids loading in diagnostic packet 
+            sweep_buffer.add(sweep);
+
     } 
     load_buffer_lock.unlock();
 }
-
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
@@ -587,63 +598,166 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
     return samplesSinceStart;
 }
 
+//void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
+//{
+//    std::scoped_lock lock(sync);
+//    const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
+//
+//
+//
+//    mutex_buffer.lock();
+//
+//    //int buffer_size = sweep_buffer.size();
+//    int buffer_size = basestation.totalData();
+//
+//
+//                //const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+//    int64_t msTime = sweep_buffer.get_time();
+//
+//
+//                //std::cout << packetTime << "\n";
+//                //std::cout << sweep_buffer.get_time() / 1000 << " ----" << "\n";
+//
+//                //auto [x_packet, y_packet, z_packet, domainPacket] = generateSamples(sweep_buffer.get_time(), samplesGenerated, newSamples);
+//    if (buffer_size > 0)
+//    {
+//        auto [x_packet, y_packet, z_packet, domainPacket] = generateSamples(msTime, samplesGenerated, buffer_size);
+//
+//        ////auto now = packetTime;
+//        //uint64_t now = sweep_buffer.get_time();
+//        //std::cout << "time: " << now << std::endl;
+//        //int delta = now -then_s;
+//
+//        x_signal.sendPacket(std::move(x_packet));
+//        y_signal.sendPacket(std::move(y_packet));
+//        z_signal.sendPacket(std::move(z_packet));
+//        timeSignal.sendPacket(std::move(domainPacket));
+//    }
+//                //timeSignal.sendPacket(std::move(DataPacket(timeSignal.getDescriptor(), newSamples, sweep_buffer.get_time())));
+//
+//            samplesGenerated += buffer_size;
+//
+//    lastCollectTime = curTime;
+//
+//    mutex_buffer.unlock(); 
+//}
+
+std::mutex mutex_buffer;
+
+int then = 0; 
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    std::scoped_lock lock(sync);
-    const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
-    int64_t newSamples = samplesSinceStart - samplesGenerated;
+    mutex_buffer.lock();
 
-    //std::cout << "channel: " << index << "\n";    
-    //std::cout << "samples requested: " << newSamples << "\n";    
+    mscl::DataSweeps sweeps = basestation.getData(20, 0);
+    int sweep_size = sweeps.size();
 
-    if (newSamples > 0)
+    if (sweep_size > 0)
     {
-        if (!fixedPacketSize)
+        uint64_t sweep_time = sweeps.data()[0].timestamp().nanoseconds() / 1000;
+        auto temp_time = sweeps[0].data()[0];
+        auto temp_time_1 = sweeps.data()[0];
+
+
+
+        uint64_t now = sweep_time;
+       /* std::cout << "current time: " << now << std::endl;
+        int diff = now - then;
+
+        if (diff < 0)
+           std::cout << "" << std::endl;
+
+        std::cout << "delta: " << diff << std::endl;
+        then = now;*/
+        std::cout << "current time: " << now << std::endl;
+        std::cout << "size: " << sweep_size << std::endl;
+        int diff = now - then;
+
+        if (diff < 0)
+           std::cout << "" << std::endl;
+
+        std::cout << "delta: " << diff << std::endl << std::endl;
+        then = now;
+
+
+
+
+
+
+        DataPacketPtr x_packet, y_packet, z_packet; 
+        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
+
+        x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), sweep_size);
+        y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), sweep_size);
+        z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), sweep_size);
+
+        double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
+        double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
+        double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
+        
+        for (int i = 0; i < sweep_size; i++)
         {
-            if (x_signal.getActive())
+            if (sweeps[i].nodeAddress() == node_id)
             {
-                const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-                auto [x_packet, y_packet, z_packet, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
-
-                x_signal.sendPacket(std::move(x_packet));
-                y_signal.sendPacket(std::move(y_packet));
-                z_signal.sendPacket(std::move(z_packet));
-                timeSignal.sendPacket(std::move(domainPacket));
+                x_packet_buffer[i] = sweeps[i].data()[0].as_float() * 100;
+                y_packet_buffer[i] = sweeps[i].data()[1].as_float() * 100;
+                z_packet_buffer[i] = sweeps[i].data()[2].as_float() * 100;
             }
+            else
+                break; 
 
-            samplesGenerated = samplesSinceStart;
+           // std::cout << "sweep: " << i << "---> " << sweeps[i].data()[0].as_Timestamp().nanoseconds() / 1000 << std::endl; 
         }
+
+        x_signal.sendPacket(std::move(x_packet));
+        y_signal.sendPacket(std::move(y_packet));
+        z_signal.sendPacket(std::move(z_packet));
+        timeSignal.sendPacket(std::move(domainPacket));
     }
 
-    lastCollectTime = curTime;
+    samplesGenerated += sweep_size;
+    //lastCollectTime = curTime;
+    mutex_buffer.unlock(); 
 }
+
 
 
 std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
 {
-    auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
+    mscl::DataSweeps sweeps = basestation.getData(1000, 0);
+    int sweep_size = sweeps.size();
 
-    DataPacketPtr x_packet, y_packet, z_packet;
 
-    x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), newSamples);
-    y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), newSamples);
-    z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), newSamples);
+    uint64_t sweep_time = sweeps.data()[0].timestamp().nanoseconds() / 1000; 
+    auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time); 
+
+    DataPacketPtr x_packet, y_packet, z_packet; 
+
+    x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), sweep_size);
+    y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), sweep_size);
+    z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), sweep_size);
 
     double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
     double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
     double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
 
-    if (sweep_buffer.size() >= newSamples)
-    {
-        for (uint64_t i = 0; i < newSamples; i++)
-        {
-            mscl::DataSweep sweep = sweep_buffer.get();
 
-            x_packet_buffer[i] = sweep.data()[0].as_float();
-            y_packet_buffer[i] = sweep.data()[1].as_float();
-            z_packet_buffer[i] = sweep.data()[2].as_float();
+        //mscl::ChannelData data = sweep.data();
+    //if (sweep_buffer.size() > newSamples)
+
+        //for (uint64_t i = 0; i < newSamples; i++)
+        int i = 0; 
+        for (mscl::DataSweep sweep : sweeps)
+        {
+            
+            x_packet_buffer[i] = sweep.data()[0].as_float() * 100;
+            y_packet_buffer[i] = sweep.data()[1].as_float() * 100;
+            z_packet_buffer[i] = sweep.data()[2].as_float() * 100;
+
+            i++;
         }
-    }
+
+
     return {x_packet, y_packet, z_packet, domainPacket};
 }
 
@@ -728,7 +842,7 @@ void RefChannelImpl::createSignals()
     y_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Y")); 
     z_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Z")); 
 
-    timeSignal = createAndAddSignal(fmt::format("AI{}Time", 0), nullptr, true, true);
+    timeSignal = createAndAddSignal(fmt::format("AI{}Time", 0), nullptr);
 
     x_signal.setDomainSignal(timeSignal);
     y_signal.setDomainSignal(timeSignal);

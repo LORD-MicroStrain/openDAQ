@@ -46,7 +46,7 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
-    acqThread2 = std::thread{ &RefDeviceImpl::hello, this };
+    //acqThread2 = std::thread{ &RefDeviceImpl::hello, this };
 }
 
 RefDeviceImpl::~RefDeviceImpl()
@@ -64,7 +64,7 @@ void RefDeviceImpl::hello()
 {
     while (1)
     {
-       RefChannelImpl::fetch_MSCL_data(0);
+       RefChannelImpl::fetch_MSCL_data();
     }
 }
 
@@ -165,6 +165,8 @@ void RefDeviceImpl::acqLoop()
         if (!stopAcq)
         {
             auto curTime = getMicroSecondsSinceDeviceStart();
+
+            std::cout << "------------------------curTime: " <<  curTime.count() << std::endl; 
 
             for (auto& ch : channels)
             {

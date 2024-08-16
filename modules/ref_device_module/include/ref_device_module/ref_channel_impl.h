@@ -49,7 +49,7 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
-    static void fetch_MSCL_data(int num_data_points);
+    static void fetch_MSCL_data();
 
 
     std::thread fetchThread;
