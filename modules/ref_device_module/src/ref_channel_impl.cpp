@@ -235,11 +235,12 @@ int main()
 
     return 0;
 }*/
-mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+//mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
+mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
 mscl::BaseStation basestation(connection);
-int node_id = 12345;
+//int node_id = 12345;
  //int node_id = 5;
-//int node_id = 40415;
+int node_id = 40415;
 
 // CircularBuffer<float> x_buffer(128);
 // CircularBuffer<float> y_buffer(128);
@@ -366,6 +367,8 @@ void RefChannelImpl::initMSCL(uint8_t section)
     }
 }
 
+//uint64_t then;
+//uint64_t last_size;
 
 void RefChannelImpl::fetch_MSCL_data()
 {
@@ -381,6 +384,19 @@ void RefChannelImpl::fetch_MSCL_data()
 
         //then = now;
 
+    mscl::Timestamp timestamp;
+
+    if (sweeps.size() > 0)
+    {
+        timestamp = sweeps[0].timestamp();
+    }
+
+    //uint64_t delta = (timestamp.nanoseconds() / 1000) - then;
+    //std::cout << "\nnum sweeps " << last_size << std::endl;
+    //std::cout << "timestamp delta " << delta << std::endl;
+    //last_size = sweeps.size();
+    //then = timestamp.nanoseconds() / 1000;
+
     for (mscl::DataSweep sweep : sweeps)
     {
         //mscl::ChannelData data = sweep.data();
@@ -388,6 +404,8 @@ void RefChannelImpl::fetch_MSCL_data()
         //x_buffer.add(data[0].as_float()); 
         //y_buffer.add(data[1].as_float()); 
         //z_buffer.add(data[2].as_float()); 
+        // if (sweep.nodeAddress() != node_id)
+        //     break;
 
         if (sweep.data().size() < 4)  //avoids loading in diagnostic packet 
             sweep_buffer.add(sweep);
@@ -644,45 +662,42 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
 
 std::mutex mutex_buffer;
 
-int then = 0; 
+uint64_t then = 0;
+uint64_t then_mscl = 0;
+uint64_t last_size = 0;
+uint64_t error = 0;
+uint64_t samplesGenerated = 0;
+
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    mutex_buffer.lock();
+    //mutex_buffer.lock();
 
     mscl::DataSweeps sweeps = basestation.getData(20, 0);
     int sweep_size = sweeps.size();
 
     if (sweep_size > 0)
     {
-        uint64_t sweep_time = sweeps.data()[0].timestamp().nanoseconds() / 1000;
-        auto temp_time = sweeps[0].data()[0];
-        auto temp_time_1 = sweeps.data()[0];
+        uint64_t sweep_time_mscl = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
+        uint64_t sweep_time = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
+        //uint64_t sweep_time = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+        samplesGenerated += sweep_size;
 
+        //if (sweep_size > 4)
+        //    sweep_time += 2;
 
+        uint64_t delta_mscl = sweep_time_mscl - then_mscl;
+        uint64_t delta = sweep_time - then;
+        std::cout << "\nnum sweeps " << last_size << std::endl;
+        std::cout << "delta_mscl   " << delta_mscl << std::endl;
+        std::cout << "delta        " << delta << std::endl;
 
-        uint64_t now = sweep_time;
-       /* std::cout << "current time: " << now << std::endl;
-        int diff = now - then;
+        //uint64_t test_size = delta / 1953; 
+        //if ((test_size > (last_size + 1)) || (test_size < (last_size - 1)))
+        //    error++;
 
-        if (diff < 0)
-           std::cout << "" << std::endl;
-
-        std::cout << "delta: " << diff << std::endl;
-        then = now;*/
-        std::cout << "current time: " << now << std::endl;
-        std::cout << "size: " << sweep_size << std::endl;
-        int diff = now - then;
-
-        if (diff < 0)
-           std::cout << "" << std::endl;
-
-        std::cout << "delta: " << diff << std::endl << std::endl;
-        then = now;
-
-
-
-
-
+        last_size = sweep_size;
+        then_mscl = sweep_time_mscl;
+        then = sweep_time;
 
         DataPacketPtr x_packet, y_packet, z_packet; 
         auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
@@ -699,9 +714,9 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
         {
             if (sweeps[i].nodeAddress() == node_id)
             {
-                x_packet_buffer[i] = sweeps[i].data()[0].as_float() * 100;
-                y_packet_buffer[i] = sweeps[i].data()[1].as_float() * 100;
-                z_packet_buffer[i] = sweeps[i].data()[2].as_float() * 100;
+                x_packet_buffer[i] = sweeps[i].data()[0].as_float();
+                y_packet_buffer[i] = sweeps[i].data()[1].as_float();
+                z_packet_buffer[i] = sweeps[i].data()[2].as_float();
             }
             else
                 break; 
@@ -715,9 +730,9 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
         timeSignal.sendPacket(std::move(domainPacket));
     }
 
-    samplesGenerated += sweep_size;
+    //samplesGenerated += sweep_size;
     //lastCollectTime = curTime;
-    mutex_buffer.unlock(); 
+    //mutex_buffer.unlock(); 
 }
 
 

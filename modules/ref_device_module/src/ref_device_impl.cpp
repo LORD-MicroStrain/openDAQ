@@ -166,7 +166,7 @@ void RefDeviceImpl::acqLoop()
         {
             auto curTime = getMicroSecondsSinceDeviceStart();
 
-            std::cout << "------------------------curTime: " <<  curTime.count() << std::endl; 
+            //std::cout << "------------------------curTime: " <<  curTime.count() << std::endl; 
 
             for (auto& ch : channels)
             {

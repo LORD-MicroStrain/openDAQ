@@ -14,6 +14,7 @@
 #include <date/date.h>
 
 #include <iomanip>
+#include <iostream>
 
 BEGIN_NAMESPACE_REF_FB_MODULE
 
@@ -329,6 +330,10 @@ void RendererFbImpl::renderPacket(
         renderPacketImplicitAndExplicit<DST>(signalContext, domainRule.getType(), renderTarget, font, packet, havePrevPacket, nextExpectedDomainPacketValue, line, end);
 }
 
+uint64_t previous;
+uint64_t delta;
+
+
 template <SampleType DST>
 void RendererFbImpl::renderPacketImplicitAndExplicit(
     SignalContext& signalContext,
@@ -369,7 +374,8 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
         delta = domainRuleParams.get("delta");
         start = domainRuleParams.get("start");
         curDomainPacketValue = firstDomainPacketValue + static_cast<DestDomainType>(samplesInPacket - 1) * delta + start;
-        gap = havePrevPacket && curDomainPacketValue != nextExpectedDomainPacketValue;
+        //gap = havePrevPacket && curDomainPacketValue != nextExpectedDomainPacketValue;
+        gap = havePrevPacket && (curDomainPacketValue > nextExpectedDomainPacketValue + delta/2); // this allows for some jitter in the timestamp
         nextExpectedDomainPacketValue = firstDomainPacketValue - delta + start;
     }
     else
@@ -415,6 +421,10 @@ void RendererFbImpl::renderPacketImplicitAndExplicit(
 
     size_t sampleSize = getSampleSize(signalContext.sampleType);
     auto data = reinterpret_cast<uint8_t*>(packet.getData()) + samplesInPacket * sampleSize;
+
+    //std::cout << "\ntimestamp packet delta " << lastDomainValue - firstDomainValue << std::endl;
+    //std::cout << "num samples " << samplesInPacket << std::endl;
+    //std::cout << "\ntimestamp packet delta " << curDomainPacketValue - firstDomainPacketValue << std::endl;
 
     size_t i = 0;
     while (i < samplesInPacket)

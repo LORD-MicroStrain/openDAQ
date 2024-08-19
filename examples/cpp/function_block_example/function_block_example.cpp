@@ -26,7 +26,7 @@ int main(int /*argc*/, const char* /*argv*/[])
     FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Set renderer to draw 2.5s of data
-    renderer.setPropertyValue("Duration", 0.5);
+    renderer.setPropertyValue("Duration", 10.0);
 
     // load all available signals in Channel 0
     const auto signals = device.getChannels()[0].getSignalsRecursive(); 
