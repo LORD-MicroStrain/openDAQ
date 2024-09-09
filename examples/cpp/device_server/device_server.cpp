@@ -13,24 +13,25 @@ int main(int /*argc*/, const char* /*argv*/[])
     // Create an openDAQ instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
-    std::cout << " " << MODULE_PATH;
-
     // Add a reference device as root device
     instance.setRootDevice("daqref://device0");
     
-    // Start streaming and openDAQ OpcUa servers 
+    // Start streaming and openDAQ OpcUa servers
+    // Jeff's Note: this does everything the code below does
     //instance.addStandardServers();
 
+    // Creates and registers a Server capability with the ID `opendaq_lt_streaming` and the default port number 7414
+    instance.addServer("openDAQ LT Streaming", nullptr);
 
-    const auto servers = instance.addStandardServers();
+    // Creates and registers a Server capability with the ID `opendaq_native_streaming` and the default port number 7420
+    instance.addServer("openDAQ Native Streaming", nullptr);
 
-    for (const auto& server : servers)
+    // As the Streaming servers were added first, the registered Server capabilities are published over OPC UA
+    instance.addServer("openDAQ OpcUa", nullptr);
+
+    while (1)
     {
-        server.enableDiscovery();
-        std::cout << server.getId() << std::endl << std::endl;
     }
 
-    std::cout << "Press \"enter\" to exit the application..." << std::endl;
-    std::cin.get();
     return 0;
 }

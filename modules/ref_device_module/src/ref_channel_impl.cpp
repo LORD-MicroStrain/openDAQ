@@ -17,7 +17,7 @@
 #include <vector>
 #include <thread>
 #include <ctime>
-#include "mscl/mscl.h"
+
 
 #define PI 3.141592653589793
 
@@ -236,15 +236,12 @@ int main()
     return 0;
 }*/
 //mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
-mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
-mscl::BaseStation basestation(connection);
-//int node_id = 12345;
- //int node_id = 5;
-int node_id = 40415;
+//mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
+//mscl::BaseStation basestation(connection);
+////int node_id = 12345;
+// //int node_id = 5;
+//int node_id = 40415;
 
-// CircularBuffer<float> x_buffer(128);
-// CircularBuffer<float> y_buffer(128);
-// CircularBuffer<float> z_buffer(128);
 CircularBuffer<mscl::DataSweep> sweep_buffer(128);
 
 int num_sweeps = 0;
@@ -287,132 +284,21 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
 
 void RefChannelImpl::initMSCL(uint8_t section)
 {
-    if (1)
-    {
-        // create the connection object with port and baud rate
-        //mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
 
-        // create the BaseStation, passing in the connection
-       // mscl::BaseStation basestation(connection);
+    std::cout << "\n\nenter the node id " << std::endl;
+    std::cin >> node_id;
 
-        mscl::WirelessNode node(node_id, basestation);
+    std::cout << "enter the COM port " << std::endl;
+    std::cin >> comPort;
 
-        mscl::PingResponse response = node.ping();
 
-        // if the ping response was a success
-        if (response.success())
-        {
-            response.baseRssi();  // the BaseStation RSSI
-            response.nodeRssi();  // the Node RSSI
-        }
-
-        // call the setToIdle function and get the resulting SetToIdleStatus object
-        mscl::SetToIdleStatus idleStatus = node.setToIdle();
-
-        // checks if the set to idle operation has completed (successfully or with a failure)
-        while (!idleStatus.complete())
-        {
-            std::cout << ".";
-        }
-
-        // check the result of the Set to Idle operation
-        switch (idleStatus.result())
-        {
-            case mscl::SetToIdleStatus::setToIdleResult_success:
-                std::cout << "Node is now in idle mode.";
-                break;
-
-            case mscl::SetToIdleStatus::setToIdleResult_canceled:
-                std::cout << "Set to Idle was canceled!";
-                break;
-
-            case mscl::SetToIdleStatus::setToIdleResult_failed:
-                std::cout << "Set to Idle has failed!";
-                break;
-        }
-
-        // create a WirelessNodeConfig which is used to set all node configuration options
-        mscl::WirelessNodeConfig config;
-
-        // set the configuration options that we want to change
-        //config.inactivityTimeout(7200);
-        config.activeChannels(mscl::ChannelMask::ChannelMask(0b111)); 
-        config.samplingMode(mscl::WirelessTypes::samplingMode_sync);
-        config.sampleRate(mscl::WirelessTypes::sampleRate_512Hz);
-        config.unlimitedDuration(true);
-
-        // apply the configuration to the Node
-        node.applyConfig(config);
-
-        // create a SyncSamplingNetwork object, giving it the BaseStation that will be the master BaseStation for the network
-        mscl::SyncSamplingNetwork network(basestation);
-
-        // add a WirelessNode to the network.
-        // Note: The Node must already be configured for Sync Sampling before adding to the network, or else Error_InvalidNodeConfig will be
-        // thrown.
-        network.addNode(node);
-
-        network.ok();                // check if the network status is ok
-        network.lossless(true);      // enable Lossless for the network
-        network.percentBandwidth();  // get the total percent of bandwidth of the network
-
-        // apply the network configuration to every node in the network
-        network.applyConfiguration();
-
-        // start all the nodes in the network sampling.
-        //if (init_check == 1)
-            network.startSampling();
-        //node.startNonSyncSampling();
-
-    }
+    mscl::Connection connection = mscl::Connection::Serial(comPort, 3000000);
+    basestation = new mscl::BaseStation(connection);
 }
 
 //uint64_t then;
 //uint64_t last_size;
 
-void RefChannelImpl::fetch_MSCL_data()
-{
-    load_buffer_lock.lock();
-
-    mscl::DataSweeps sweeps = basestation.getData(1000, 0);
-
-
-        //auto now = sweep_buffer.get_time();
-
-        //std::cout << "fetch mscl time: " << now << std::endl;
-        //std::cout << "time since last fetch mscl stamp: " << now - then << std::endl; 
-
-        //then = now;
-
-    mscl::Timestamp timestamp;
-
-    if (sweeps.size() > 0)
-    {
-        timestamp = sweeps[0].timestamp();
-    }
-
-    //uint64_t delta = (timestamp.nanoseconds() / 1000) - then;
-    //std::cout << "\nnum sweeps " << last_size << std::endl;
-    //std::cout << "timestamp delta " << delta << std::endl;
-    //last_size = sweeps.size();
-    //then = timestamp.nanoseconds() / 1000;
-
-    for (mscl::DataSweep sweep : sweeps)
-    {
-        //mscl::ChannelData data = sweep.data();
-
-        //x_buffer.add(data[0].as_float()); 
-        //y_buffer.add(data[1].as_float()); 
-        //z_buffer.add(data[2].as_float()); 
-        // if (sweep.nodeAddress() != node_id)
-        //     break;
-
-        if (sweep.data().size() < 4)  //avoids loading in diagnostic packet 
-            sweep_buffer.add(sweep);
-
-    } 
-    load_buffer_lock.unlock();
-}
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
@@ -616,88 +502,16 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
     return samplesSinceStart;
 }
 
-//void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
-//{
-//    std::scoped_lock lock(sync);
-//    const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
-//
-//
-//
-//    mutex_buffer.lock();
-//
-//    //int buffer_size = sweep_buffer.size();
-//    int buffer_size = basestation.totalData();
-//
-//
-//                //const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
-//    int64_t msTime = sweep_buffer.get_time();
-//
-//
-//                //std::cout << packetTime << "\n";
-//                //std::cout << sweep_buffer.get_time() / 1000 << " ----" << "\n";
-//
-//                //auto [x_packet, y_packet, z_packet, domainPacket] = generateSamples(sweep_buffer.get_time(), samplesGenerated, newSamples);
-//    if (buffer_size > 0)
-//    {
-//        auto [x_packet, y_packet, z_packet, domainPacket] = generateSamples(msTime, samplesGenerated, buffer_size);
-//
-//        ////auto now = packetTime;
-//        //uint64_t now = sweep_buffer.get_time();
-//        //std::cout << "time: " << now << std::endl;
-//        //int delta = now -then_s;
-//
-//        x_signal.sendPacket(std::move(x_packet));
-//        y_signal.sendPacket(std::move(y_packet));
-//        z_signal.sendPacket(std::move(z_packet));
-//        timeSignal.sendPacket(std::move(domainPacket));
-//    }
-//                //timeSignal.sendPacket(std::move(DataPacket(timeSignal.getDescriptor(), newSamples, sweep_buffer.get_time())));
-//
-//            samplesGenerated += buffer_size;
-//
-//    lastCollectTime = curTime;
-//
-//    mutex_buffer.unlock(); 
-//}
-
-std::mutex mutex_buffer;
-
-uint64_t then = 0;
-uint64_t then_mscl = 0;
-uint64_t last_size = 0;
-uint64_t error = 0;
-uint64_t samplesGenerated = 0;
 
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    //mutex_buffer.lock();
-
-    mscl::DataSweeps sweeps = basestation.getData(20, 0);
+    mscl::DataSweeps sweeps = basestation->getData(20, 0);
     int sweep_size = sweeps.size();
 
     if (sweep_size > 0)
     {
-        uint64_t sweep_time_mscl = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
         uint64_t sweep_time = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
-        //uint64_t sweep_time = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
         samplesGenerated += sweep_size;
-
-        //if (sweep_size > 4)
-        //    sweep_time += 2;
-
-        uint64_t delta_mscl = sweep_time_mscl - then_mscl;
-        uint64_t delta = sweep_time - then;
-        std::cout << "\nnum sweeps " << last_size << std::endl;
-        std::cout << "delta_mscl   " << delta_mscl << std::endl;
-        std::cout << "delta        " << delta << std::endl;
-
-        //uint64_t test_size = delta / 1953; 
-        //if ((test_size > (last_size + 1)) || (test_size < (last_size - 1)))
-        //    error++;
-
-        last_size = sweep_size;
-        then_mscl = sweep_time_mscl;
-        then = sweep_time;
 
         DataPacketPtr x_packet, y_packet, z_packet; 
         auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
@@ -720,60 +534,14 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
             }
             else
                 break; 
-
-           // std::cout << "sweep: " << i << "---> " << sweeps[i].data()[0].as_Timestamp().nanoseconds() / 1000 << std::endl; 
         }
 
         x_signal.sendPacket(std::move(x_packet));
         y_signal.sendPacket(std::move(y_packet));
         z_signal.sendPacket(std::move(z_packet));
         timeSignal.sendPacket(std::move(domainPacket));
+
     }
-
-    //samplesGenerated += sweep_size;
-    //lastCollectTime = curTime;
-    //mutex_buffer.unlock(); 
-}
-
-
-
-std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
-{
-    mscl::DataSweeps sweeps = basestation.getData(1000, 0);
-    int sweep_size = sweeps.size();
-
-
-    uint64_t sweep_time = sweeps.data()[0].timestamp().nanoseconds() / 1000; 
-    auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time); 
-
-    DataPacketPtr x_packet, y_packet, z_packet; 
-
-    x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), sweep_size);
-    y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), sweep_size);
-    z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), sweep_size);
-
-    double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
-    double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
-    double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
-
-
-        //mscl::ChannelData data = sweep.data();
-    //if (sweep_buffer.size() > newSamples)
-
-        //for (uint64_t i = 0; i < newSamples; i++)
-        int i = 0; 
-        for (mscl::DataSweep sweep : sweeps)
-        {
-            
-            x_packet_buffer[i] = sweep.data()[0].as_float() * 100;
-            y_packet_buffer[i] = sweep.data()[1].as_float() * 100;
-            z_packet_buffer[i] = sweep.data()[2].as_float() * 100;
-
-            i++;
-        }
-
-
-    return {x_packet, y_packet, z_packet, domainPacket};
 }
 
 Int RefChannelImpl::getDeltaT(const double sr) const

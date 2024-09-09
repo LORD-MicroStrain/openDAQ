@@ -60,14 +60,6 @@ RefDeviceImpl::~RefDeviceImpl()
     acqThread.join();
 }
 
-void RefDeviceImpl::hello()
-{
-    while (1)
-    {
-       RefChannelImpl::fetch_MSCL_data();
-    }
-}
-
 DeviceInfoPtr RefDeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
     auto devInfo = DeviceInfo(fmt::format("daqref://device{}", id));

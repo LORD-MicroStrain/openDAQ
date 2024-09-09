@@ -20,6 +20,7 @@
 #include <opendaq/signal_config_ptr.h>
 #include <optional>
 #include <random>
+#include "mscl/mscl.h"
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -49,7 +50,7 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
-    static void fetch_MSCL_data();
+    //static void fetch_MSCL_data();
 
 
     std::thread fetchThread;
@@ -90,6 +91,11 @@ private:
     bool fixedPacketSize;
     uint64_t packetSize;
 
+    /// MSCL/Wireless
+    char comPort[7] = {0,0,0,0,0,0,0};
+    int node_id = 40415;
+    mscl::BaseStation* basestation;
+
     std::thread acqThread;
 
     void initMSCL(uint8_t section);
@@ -107,7 +113,7 @@ private:
     void resetCounter();
     uint64_t getSamplesSinceStart(std::chrono::microseconds time) const;
     void createSignals();
-    std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
+    //std::tuple<PacketPtr, PacketPtr, PacketPtr, PacketPtr> generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples);
     [[nodiscard]] Int getDeltaT(const double sr) const;
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;

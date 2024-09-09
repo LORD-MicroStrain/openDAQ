@@ -55,7 +55,7 @@ private:
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
-    void hello();
+    //void hello();
 
     size_t id;
     StringPtr serialNumber;
