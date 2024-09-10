@@ -114,6 +114,9 @@ if (DAQMODULES_AUDIO_DEVICE_MODULE)
     add_subdirectory(audio_device_module)
 endif()
 
+#TODO wrap this in an if statement
+add_subdirectory(wsda_200_device_module)
+
 if (OPENDAQ_ENABLE_TESTS)
     add_subdirectory(tests)
 endif()
