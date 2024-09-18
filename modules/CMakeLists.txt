@@ -104,6 +104,11 @@ if (DAQMODULES_REF_DEVICE_MODULE)
     add_subdirectory(ref_device_module)
 endif()
 
+if (DAQMODULES_MSCL_DEVICE_MODULE)
+    message(STATUS "MSCL device module")
+    add_subdirectory(mscl_device_module)
+endif()
+
 if (DAQMODULES_REF_FB_MODULE)
     message(STATUS "Reference function block module")
     add_subdirectory(ref_fb_module)

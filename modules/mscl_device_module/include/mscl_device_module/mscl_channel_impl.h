@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <ref_device_module/common.h>
+#include <mscl_device_module/common.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
 #include <optional>
@@ -23,17 +23,17 @@
 #include <thread>
 #include "mscl/mscl.h"
 
-BEGIN_NAMESPACE_REF_DEVICE_MODULE
+BEGIN_NAMESPACE_MSCL_DEVICE_MODULE
 
 enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
 
-DECLARE_OPENDAQ_INTERFACE(IRefChannel, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IMSCLChannel, IBaseObject)
 {
     virtual void collectSamples(std::chrono::microseconds curTime) = 0;
     virtual void globalSampleRateChanged(double globalSampleRate) = 0;
 };
 
-struct RefChannelInit
+struct MSCLChannelInit
 {
     size_t index;
     double globalSampleRate;
@@ -41,12 +41,12 @@ struct RefChannelInit
     std::chrono::microseconds microSecondsFromEpochToStartTime;
 };
 
-class RefChannelImpl final : public ChannelImpl<IRefChannel>
+class MSCLChannelImpl final : public ChannelImpl<IMSCLChannel>
 {
 public:
-    explicit RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init);
+    explicit MSCLChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const MSCLChannelInit& init);
 
-    // IRefChannel
+    // IMSCLChannel
     void collectSamples(std::chrono::microseconds curTime) override;
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
@@ -123,4 +123,4 @@ private:
     void hello();
 };
 
-END_NAMESPACE_REF_DEVICE_MODULE
+END_NAMESPACE_MSCL_DEVICE_MODULE

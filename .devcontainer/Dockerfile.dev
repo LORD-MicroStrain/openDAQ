@@ -3,7 +3,6 @@ ARG UBUNTU_VERSION="22.04"
 FROM ${ARCH}/ubuntu:${UBUNTU_VERSION}
 
 # Add the proxy cert to the trusted chain of certs
-COPY .devcontainer/ZScaler.crt /usr/local/share/ca-certificates/ZScaler.crt
 RUN set -ex \
     && apt-get update && apt-get install --no-install-recommends -y \
         ca-certificates \

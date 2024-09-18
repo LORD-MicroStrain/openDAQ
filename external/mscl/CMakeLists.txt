@@ -39,6 +39,7 @@ if(UNIX)
     FetchContent_MakeAvailable(${MSCL_BOOST_TARGET})
 
     # Build this version of boost for MSCL
+    include(ProcessorCount)
     message(STATUS "Building boost 1.68.0 for MSCL...")
     ProcessorCount(N)
     if(WIN32)
@@ -54,7 +55,7 @@ if(UNIX)
         OUTPUT_QUIET
     )
     execute_process(
-        COMMAND ${MSCL_BOOST_B2_COMMAND} -j ${N} variant=release
+        COMMAND ${MSCL_BOOST_B2_COMMAND} -j ${N} variant=release cxxflags="-fPIC"
         WORKING_DIRECTORY "${${MSCL_BOOST_TARGET}_SOURCE_DIR}"
         OUTPUT_QUIET
     )
