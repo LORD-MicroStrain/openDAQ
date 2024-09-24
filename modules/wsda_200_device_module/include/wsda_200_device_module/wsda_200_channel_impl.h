@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <mscl_device_module/common.h>
+#include <wsda_200_device_module/common.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
 #include <optional>
@@ -23,17 +23,17 @@
 #include <thread>
 #include "mscl/mscl.h"
 
-BEGIN_NAMESPACE_MSCL_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
 enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
 
-DECLARE_OPENDAQ_INTERFACE(IMSCLChannel, IBaseObject)
+DECLARE_OPENDAQ_INTERFACE(IWSDA200Channel, IBaseObject)
 {
     virtual void collectSamples(std::chrono::microseconds curTime) = 0;
     virtual void globalSampleRateChanged(double globalSampleRate) = 0;
 };
 
-struct MSCLChannelInit
+struct WSDA200ChannelInit
 {
     size_t index;
     double globalSampleRate;
@@ -41,10 +41,10 @@ struct MSCLChannelInit
     std::chrono::microseconds microSecondsFromEpochToStartTime;
 };
 
-class MSCLChannelImpl final : public ChannelImpl<IMSCLChannel>
+class WSDA200ChannelImpl final : public ChannelImpl<IWSDA200Channel>
 {
 public:
-    explicit MSCLChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const MSCLChannelInit& init);
+    explicit WSDA200ChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDA200ChannelInit& init);
 
     // IMSCLChannel
     void collectSamples(std::chrono::microseconds curTime) override;
@@ -123,4 +123,4 @@ private:
     void hello();
 };
 
-END_NAMESPACE_MSCL_DEVICE_MODULE
+END_NAMESPACE_WSDA_200_DEVICE_MODULE

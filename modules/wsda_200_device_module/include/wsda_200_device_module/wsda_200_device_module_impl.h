@@ -15,16 +15,32 @@
  */
 
 #pragma once
-#include <mscl_device_module/common.h>
+#include <wsda_200_device_module/common.h>
 #include <opendaq/module_impl.h>
 
-BEGIN_NAMESPACE_MSCL_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
-class MSCLDeviceModule final : public Module
+class WSDA200DeviceModule final : public Module
 {
 public:
-    explicit MSCLDeviceModule(ContextPtr context);
+    std::vector<DeviceInfoPtr> getAvailableDevices();
+    VersionInfoPtr CreateDeviceModuleVersionInfo();
+    void readLanxiDeviceInfo();
+    std::string getBuildInfo();
 
+    StringPtr m_name;
+    StringPtr m_localId;
+    StringPtr m_model;
+    StringPtr m_serialNumber;
+    StringPtr m_macAddress;
+    StringPtr m_location;
+    StringPtr m_contact;
+    StringPtr m_hwVersion; 
+    StringPtr m_swVersion;
+    StringPtr m_connectorConfiguration;
+
+    /// ///////////////////////////////////////////////////////////////////////
+    explicit WSDA200DeviceModule(ContextPtr context);
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
@@ -37,4 +53,4 @@ private:
     size_t getIdFromConnectionString(const std::string& connectionString) const;
 };
 
-END_NAMESPACE_MSCL_DEVICE_MODULE
+END_NAMESPACE_WSDA_200_DEVICE_MODULE

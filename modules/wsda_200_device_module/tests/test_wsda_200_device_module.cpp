@@ -13,16 +13,16 @@
 #include <opendaq/reader_factory.h>
 #include <opendaq/removable_ptr.h>
 #include <opendaq/search_filter_factory.h>
-#include <mscl_device_module/module_dll.h>
-#include <mscl_device_module/version.h>
+#include <wsda_200_device_module/module_dll.h>
+#include <wsda_200_device_module/version.h>
 #include <testutils/testutils.h>
 #include <thread>
 #include "../../../core/opendaq/opendaq/tests/test_config_provider.h"
 
 using namespace daq;
-using MSCLDeviceModuleTest = testing::Test;
+using WSDA200DeviceModuleTest = testing::Test;
 using namespace test_config_provider_helpers;
-using MSCLDeviceModuleTestConfig = ConfigProviderTest;
+using WSDA200DeviceModuleTestConfig = ConfigProviderTest;
 
 static ModulePtr CreateModule()
 {
@@ -31,7 +31,7 @@ static ModulePtr CreateModule()
     return module;
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateModule)
+TEST_F(WSDA200DeviceModuleTest, CreateModule)
 {
     IModule* module = nullptr;
     ErrCode errCode = createModule(&module, NullContext());
@@ -41,29 +41,29 @@ TEST_F(MSCLDeviceModuleTest, CreateModule)
     module->releaseRef();
 }
 
-TEST_F(MSCLDeviceModuleTest, ModuleName)
+TEST_F(WSDA200DeviceModuleTest, ModuleName)
 {
     auto module = CreateModule();
-    ASSERT_EQ(module.getName(), "MSCLDeviceModule");
+    ASSERT_EQ(module.getName(), "WSDA200DeviceModule");
 }
 
-TEST_F(MSCLDeviceModuleTest, VersionAvailable)
+TEST_F(WSDA200DeviceModuleTest, VersionAvailable)
 {
     auto module = CreateModule();
     ASSERT_TRUE(module.getVersionInfo().assigned());
 }
 
-TEST_F(MSCLDeviceModuleTest, VersionCorrect)
+TEST_F(WSDA200DeviceModuleTest, VersionCorrect)
 {
     auto module = CreateModule();
     auto version = module.getVersionInfo();
 
-    ASSERT_EQ(version.getMajor(), MSCL_DEVICE_MODULE_MAJOR_VERSION);
-    ASSERT_EQ(version.getMinor(), MSCL_DEVICE_MODULE_MINOR_VERSION);
-    ASSERT_EQ(version.getPatch(), MSCL_DEVICE_MODULE_PATCH_VERSION);
+    ASSERT_EQ(version.getMajor(), WSDA_200_DEVICE_MODULE_MAJOR_VERSION);
+    ASSERT_EQ(version.getMinor(), WSDA_200_DEVICE_MODULE_MINOR_VERSION);
+    ASSERT_EQ(version.getPatch(), WSDA_200_DEVICE_MODULE_PATCH_VERSION);
 }
 
-TEST_F(MSCLDeviceModuleTest, EnumerateDevices)
+TEST_F(WSDA200DeviceModuleTest, EnumerateDevices)
 {
     auto module = CreateModule();
 
@@ -71,11 +71,11 @@ TEST_F(MSCLDeviceModuleTest, EnumerateDevices)
     ASSERT_NO_THROW(deviceInfo = module.getAvailableDevices());
 
     ASSERT_EQ(deviceInfo.getCount(), 2u);
-    ASSERT_EQ(deviceInfo[0].getConnectionString(), "daqmscl://device0");
-    ASSERT_EQ(deviceInfo[1].getConnectionString(), "daqmscl://device1");
+    ASSERT_EQ(deviceInfo[0].getConnectionString(), "daqwsda200://device0");
+    ASSERT_EQ(deviceInfo[1].getConnectionString(), "daqwsda200://device1");
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringNull)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceConnectionStringNull)
 {
     auto module = CreateModule();
 
@@ -83,58 +83,58 @@ TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringNull)
     ASSERT_THROW(device = module.createDevice(nullptr, nullptr), ArgumentNullException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringEmpty)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceConnectionStringEmpty)
 {
     auto module = CreateModule();
 
     ASSERT_THROW(module.createDevice("", nullptr), InvalidParameterException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringInvalid)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceConnectionStringInvalid)
 {
     auto module = CreateModule();
 
     ASSERT_THROW(module.createDevice("fdfdfdfdde", nullptr), InvalidParameterException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringInvalidId)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceConnectionStringInvalidId)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daqmscl://devicett3axxr1", nullptr), InvalidParameterException);
+    ASSERT_THROW(module.createDevice("daqwsda200://devicett3axxr1", nullptr), InvalidParameterException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringOutOfRange)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceConnectionStringOutOfRange)
 {
     auto module = CreateModule();
 
-    ASSERT_THROW(module.createDevice("daqmscl://device3", nullptr), NotFoundException);
+    ASSERT_THROW(module.createDevice("daqwsda200://device3", nullptr), NotFoundException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceConnectionStringCorrect)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceConnectionStringCorrect)
 {
     auto module = CreateModule();
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("daqmscl://device1", nullptr));
+    ASSERT_NO_THROW(device = module.createDevice("daqwsda200://device1", nullptr));
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceDomainResolution)
+TEST_F(WSDA200DeviceModuleTest, DeviceDomainResolution)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getTickResolution();
     ASSERT_EQ(res, Ratio(1, 1000000));
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceDomainUnit)
+TEST_F(WSDA200DeviceModuleTest, DeviceDomainUnit)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto domain = device.getDomain();
 
     auto unit = domain.getUnit();
@@ -143,28 +143,28 @@ TEST_F(MSCLDeviceModuleTest, DeviceDomainUnit)
     ASSERT_EQ(unit.getQuantity(), "time");
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceDomainTicksSinceEpoch)
+TEST_F(WSDA200DeviceModuleTest, DeviceDomainTicksSinceEpoch)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     auto res = device.getTicksSinceOrigin();
     ASSERT_GT(res, 0u);
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceDomainOrigin)
+TEST_F(WSDA200DeviceModuleTest, DeviceDomainOrigin)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto domain = device.getDomain();
 
     auto res = domain.getOrigin();
     ASSERT_FALSE(static_cast<std::string>(res).empty());
 }
 
-TEST_F(MSCLDeviceModuleTest, GetAvailableComponentTypes)
+TEST_F(WSDA200DeviceModuleTest, GetAvailableComponentTypes)
 {
     const auto module = CreateModule();
 
@@ -175,15 +175,15 @@ TEST_F(MSCLDeviceModuleTest, GetAvailableComponentTypes)
     DictPtr<IString, IDeviceType> deviceTypes;
     ASSERT_NO_THROW(deviceTypes = module.getAvailableDeviceTypes());
     ASSERT_EQ(deviceTypes.getCount(), 1u);
-    ASSERT_TRUE(deviceTypes.hasKey("daqmscl"));
-    ASSERT_EQ(deviceTypes.get("daqmscl").getId(), "daqmscl");
+    ASSERT_TRUE(deviceTypes.hasKey("daqwsda200"));
+    ASSERT_EQ(deviceTypes.get("daqwsda200").getId(), "daqwsda200");
 
     DictPtr<IString, IServerType> serverTypes;
     ASSERT_NO_THROW(serverTypes = module.getAvailableServerTypes());
     ASSERT_EQ(serverTypes.getCount(), 0u);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateFunctionBlockIdNull)
+TEST_F(WSDA200DeviceModuleTest, CreateFunctionBlockIdNull)
 {
     auto module = CreateModule();
 
@@ -191,18 +191,18 @@ TEST_F(MSCLDeviceModuleTest, CreateFunctionBlockIdNull)
     ASSERT_THROW(functionBlock = module.createFunctionBlock(nullptr, nullptr, "Id"), ArgumentNullException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateFunctionBlockIdEmpty)
+TEST_F(WSDA200DeviceModuleTest, CreateFunctionBlockIdEmpty)
 {
     auto module = CreateModule();
 
     ASSERT_THROW(module.createFunctionBlock("", nullptr, "Id"), NotFoundException);
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceNumberOfChannels)
+TEST_F(WSDA200DeviceModuleTest, DeviceNumberOfChannels)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 2);
@@ -210,11 +210,11 @@ TEST_F(MSCLDeviceModuleTest, DeviceNumberOfChannels)
     ASSERT_EQ(device.getChannels().getCount(), 2u);
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceChangeNumberOfChannels)
+TEST_F(WSDA200DeviceModuleTest, DeviceChangeNumberOfChannels)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     device.setPropertyValue("NumberOfChannels", 5);
     Int numChannels = device.getPropertyValue("NumberOfChannels");
@@ -227,22 +227,22 @@ TEST_F(MSCLDeviceModuleTest, DeviceChangeNumberOfChannels)
     ASSERT_EQ(device.getChannels().getCount(), 3u);
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceChangeAcqLoopTime)
+TEST_F(WSDA200DeviceModuleTest, DeviceChangeAcqLoopTime)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     device.setPropertyValue("AcquisitionLoopTime", 100);
     Int acqLoopTime = device.getPropertyValue("AcquisitionLoopTime");
     ASSERT_EQ(acqLoopTime, 100);
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceGlobalSampleRate)
+TEST_F(WSDA200DeviceModuleTest, DeviceGlobalSampleRate)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     Float globalSampleRate = device.getPropertyValue("GlobalSampleRate");
     ASSERT_DOUBLE_EQ(globalSampleRate, 1000.0);
@@ -252,10 +252,10 @@ TEST_F(MSCLDeviceModuleTest, DeviceGlobalSampleRate)
     ASSERT_DOUBLE_EQ(globalSampleRate, 500.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelWaveform)
+TEST_F(WSDA200DeviceModuleTest, ChannelWaveform)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -266,10 +266,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelWaveform)
     ASSERT_EQ(waveform, 1);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelFrequency)
+TEST_F(WSDA200DeviceModuleTest, ChannelFrequency)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -280,10 +280,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelFrequency)
     ASSERT_FLOAT_EQ(frequency, 100.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelDC)
+TEST_F(WSDA200DeviceModuleTest, ChannelDC)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -294,10 +294,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelDC)
     ASSERT_FLOAT_EQ(dc, 1.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelAmplitude)
+TEST_F(WSDA200DeviceModuleTest, ChannelAmplitude)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -308,10 +308,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelAmplitude)
     ASSERT_FLOAT_EQ(amplitude, 6.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelName)
+TEST_F(WSDA200DeviceModuleTest, ChannelName)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
 
     size_t i = 0;
@@ -322,10 +322,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelName)
     }
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelNoiseAmplitude)
+TEST_F(WSDA200DeviceModuleTest, ChannelNoiseAmplitude)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -336,10 +336,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelNoiseAmplitude)
     ASSERT_FLOAT_EQ(noiseAmpl, 1.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelCustomRange)
+TEST_F(WSDA200DeviceModuleTest, ChannelCustomRange)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channel = device.getChannels()[0];
     auto signal = channel.getSignals()[0];
 
@@ -354,10 +354,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelCustomRange)
     ASSERT_EQ(desc.getValueRange().getLowValue(), -5.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelSampleRate)
+TEST_F(WSDA200DeviceModuleTest, ChannelSampleRate)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -371,10 +371,10 @@ TEST_F(MSCLDeviceModuleTest, ChannelSampleRate)
     ASSERT_TRUE(channel.getProperty("SampleRate").getVisible());
 }
 
-TEST_F(MSCLDeviceModuleTest, CoerceChannelSampleRate)
+TEST_F(WSDA200DeviceModuleTest, CoerceChannelSampleRate)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -383,23 +383,23 @@ TEST_F(MSCLDeviceModuleTest, CoerceChannelSampleRate)
     ASSERT_DOUBLE_EQ(sampleRate, 50000.0);
 }
 
-TEST_F(MSCLDeviceModuleTest, Ids)
+TEST_F(WSDA200DeviceModuleTest, Ids)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
     auto valueSignal = channel.getSignals()[0];
     auto domainSignal = channel.getSignals(search::Any())[1];
 
-    ASSERT_EQ(channel.getLocalId(), "MSCLCh0");
-    ASSERT_EQ(channel.getGlobalId(), "/MSCLDev1/IO/AI/MSCLCh0");
+    ASSERT_EQ(channel.getLocalId(), "WSDA200Ch0");
+    ASSERT_EQ(channel.getGlobalId(), "/WSDA200Dev1/IO/AI/WSDA200Ch0");
 
     ASSERT_EQ(valueSignal.getLocalId(), "AI0");
-    ASSERT_EQ(valueSignal.getGlobalId(), "/MSCLDev1/IO/AI/MSCLCh0/Sig/AI0");
+    ASSERT_EQ(valueSignal.getGlobalId(), "/WSDA200Dev1/IO/AI/WSDA200Ch0/Sig/AI0");
 
     ASSERT_EQ(domainSignal.getLocalId(), "AI0Time");
-    ASSERT_EQ(domainSignal.getGlobalId(), "/MSCLDev1/IO/AI/MSCLCh0/Sig/AI0Time");
+    ASSERT_EQ(domainSignal.getGlobalId(), "/WSDA200Dev1/IO/AI/WSDA200Ch0/Sig/AI0Time");
 }
 
 bool propertyInfoListContainsProperty(const ListPtr<IProperty>& list, const std::string& propName)
@@ -414,10 +414,10 @@ bool propertyInfoListDoesntContainProperty(const ListPtr<IProperty>& list, const
     return !propertyInfoListContainsProperty(list, propName);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelProperties)
+TEST_F(WSDA200DeviceModuleTest, ChannelProperties)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
 
@@ -430,20 +430,20 @@ TEST_F(MSCLDeviceModuleTest, ChannelProperties)
     ASSERT_PRED2(propertyInfoListDoesntContainProperty, visibleProps, "Amplitude");
 }
 
-TEST_F(MSCLDeviceModuleTest, SignalCheck)
+TEST_F(WSDA200DeviceModuleTest, SignalCheck)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
     auto signals = channel.getSignals(search::Any());
     ASSERT_EQ(signals.getCount(), 2u);
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
+TEST_F(WSDA200DeviceModuleTest, DeviceRemoveDisconnectsInputPort)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[0];
     auto signals = channel.getSignals();
@@ -457,10 +457,10 @@ TEST_F(MSCLDeviceModuleTest, DeviceRemoveDisconnectsInputPort)
     ASSERT_EQ(inputPort.getSignal(), nullptr);
 }
 
-TEST_F(MSCLDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
+TEST_F(WSDA200DeviceModuleTest, ChannelRemovedDisconnectsInputPort)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     auto channels = device.getChannels();
     auto channel = channels[1];
     auto signals = channel.getSignals();
@@ -474,29 +474,29 @@ TEST_F(MSCLDeviceModuleTest, ChannelRemovedDisconnectsInputPort)
     ASSERT_EQ(inputPort.getSignal(), nullptr);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateDeviceTwice)
+TEST_F(WSDA200DeviceModuleTest, CreateDeviceTwice)
 {
     auto module = CreateModule();
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("daqmscl://device1", nullptr));
-    ASSERT_THROW(module.createDevice("daqmscl://device1", nullptr), AlreadyExistsException);
+    ASSERT_NO_THROW(device = module.createDevice("daqwsda200://device1", nullptr));
+    ASSERT_THROW(module.createDevice("daqwsda200://device1", nullptr), AlreadyExistsException);
 }
 
-TEST_F(MSCLDeviceModuleTest, CreateReleaseAndCreateDevice)
+TEST_F(WSDA200DeviceModuleTest, CreateReleaseAndCreateDevice)
 {
     auto module = CreateModule();
 
     DevicePtr device;
-    ASSERT_NO_THROW(device = module.createDevice("daqmscl://device1", nullptr));
+    ASSERT_NO_THROW(device = module.createDevice("daqwsda200://device1", nullptr));
     device.release();
-    ASSERT_NO_THROW(module.createDevice("daqmscl://device1", nullptr));
+    ASSERT_NO_THROW(module.createDevice("daqwsda200://device1", nullptr));
 }
 
-TEST_F(MSCLDeviceModuleTest, Folders)
+TEST_F(WSDA200DeviceModuleTest, Folders)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     FolderPtr ioFolder = device.getItem("IO");
     FolderPtr aiFolder = ioFolder.getItem("AI");
     ChannelPtr chX = aiFolder.getItems()[0];
@@ -507,10 +507,10 @@ TEST_F(MSCLDeviceModuleTest, Folders)
     ASSERT_EQ(chX, chY);
 }
 
-TEST_F(MSCLDeviceModuleTest, Sync)
+TEST_F(WSDA200DeviceModuleTest, Sync)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
     ComponentPtr syncComponent = device.getItem("sync");
 
     ASSERT_FALSE(syncComponent.getPropertyValue("UseSync"));
@@ -518,10 +518,10 @@ TEST_F(MSCLDeviceModuleTest, Sync)
     ASSERT_TRUE(syncComponent.getPropertyValue("UseSync"));
 }
 
-TEST_F(MSCLDeviceModuleTest, Serialize)
+TEST_F(WSDA200DeviceModuleTest, Serialize)
 {
     auto module = CreateModule();
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     device.setPropertyValue("NumberOfChannels", 5);
     device.setPropertyValue("GlobalSampleRate", 500.0);
@@ -534,11 +534,11 @@ TEST_F(MSCLDeviceModuleTest, Serialize)
     std::cout << str << std::endl;
 }
 
-TEST_F(MSCLDeviceModuleTest, DeviceEnableCANChannel)
+TEST_F(WSDA200DeviceModuleTest, DeviceEnableCANChannel)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     Int numChannels = device.getPropertyValue("NumberOfChannels");
     ASSERT_EQ(numChannels, 2);
@@ -550,11 +550,11 @@ TEST_F(MSCLDeviceModuleTest, DeviceEnableCANChannel)
     ASSERT_EQ(device.getChannels().getCount(), 3u);
 }
 
-TEST_F(MSCLDeviceModuleTest, ReadCANChannel)
+TEST_F(WSDA200DeviceModuleTest, ReadCANChannel)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     device.setPropertyValue("EnableCANChannel", True);
 
@@ -601,11 +601,11 @@ TEST_F(MSCLDeviceModuleTest, ReadCANChannel)
     }
 }
 
-TEST_F(MSCLDeviceModuleTest, ReadCANChannelWithStreamReader)
+TEST_F(WSDA200DeviceModuleTest, ReadCANChannelWithStreamReader)
 {
     const auto module = CreateModule();
 
-    const auto device = module.createDevice("daqmscl://device1", nullptr);
+    const auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     device.setPropertyValue("EnableCANChannel", True);
 
@@ -640,13 +640,13 @@ TEST_F(MSCLDeviceModuleTest, ReadCANChannelWithStreamReader)
     }
 }
 
-TEST_F(MSCLDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
+TEST_F(WSDA200DeviceModuleTest, ReadAIChannelWithFixedPacketSize)
 {
     const auto module = CreateModule();
 
     constexpr SizeT packetSize = 1000;
 
-    const auto device = module.createDevice("daqmscl://device1", nullptr);
+    const auto device = module.createDevice("daqwsda200://device1", nullptr);
     device.setPropertyValue("GlobalSampleRate", 1000);
 
     const auto channel = device.getChannels()[0];
@@ -683,11 +683,11 @@ TEST_F(MSCLDeviceModuleTest, ReadAIChannelWithFixedPacketSize)
     };
 }
 
-TEST_F(MSCLDeviceModuleTest, ReadConstantRule)
+TEST_F(WSDA200DeviceModuleTest, ReadConstantRule)
 {
     auto module = CreateModule();
 
-    auto device = module.createDevice("daqmscl://device1", nullptr);
+    auto device = module.createDevice("daqwsda200://device1", nullptr);
 
     const ChannelPtr ch = device.getChannels()[0];
     ch.setPropertyValue("ConstantValue", 4.0);
@@ -711,26 +711,26 @@ TEST_F(MSCLDeviceModuleTest, ReadConstantRule)
     }
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, JsonConfigReadMSCLDeviceLocalId)
+TEST_F(WSDA200DeviceModuleTestConfig, JsonConfigReadWSDA200DeviceLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"MSCLDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = "{ \"Modules\": { \"WSDA200Device\": { \"LocalId\": \"testtest\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetOptionsWithReferenceDevice();
 
     auto expectedOptions = GetOptionsWithReferenceDevice();
-    getChildren(getChildren(expectedOptions, "Modules"), "MSCLDevice").set("LocalId", "testtest");
+    getChildren(getChildren(expectedOptions, "Modules"), "WSDA200Device").set("LocalId", "testtest");
 
     auto provider = JsonConfigProvider(StringPtr(filename));
     provider.populateOptions(options);
 
     ASSERT_EQ(options, expectedOptions);
 }
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"MSCLDevice\": { \"LocalId\": \"testtest\" } } }";
+    std::string json = "{ \"Modules\": { \"WSDA200Device\": { \"LocalId\": \"testtest\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -744,14 +744,14 @@ TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigLocalId)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqmscl://device1", nullptr));
+    ASSERT_NO_THROW(ptr = module.createDevice("daqwsda200://device1", nullptr));
     ASSERT_EQ(ptr.getLocalId(), "testtest");
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigName)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"MSCLDevice\": { \"Name\": \"testname\" } } }";
+    std::string json = "{ \"Modules\": { \"WSDA200Device\": { \"Name\": \"testname\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -765,14 +765,14 @@ TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigName)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqmscl://device1", nullptr));
+    ASSERT_NO_THROW(ptr = module.createDevice("daqwsda200://device1", nullptr));
     ASSERT_EQ(ptr.getName(), "testname");
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"MSCLDevice\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } } }";
+    std::string json = "{ \"Modules\": { \"WSDA200Device\": { \"LocalId\": \"testtest\", \"Name\": \"testname\" } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -786,15 +786,15 @@ TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigLocalIdAndName)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqmscl://device1", nullptr));
+    ASSERT_NO_THROW(ptr = module.createDevice("daqwsda200://device1", nullptr));
     ASSERT_EQ(ptr.getLocalId(), "testtest");
     ASSERT_EQ(ptr.getName(), "testname");
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
 {
     std::string filename = "test.json";
-    std::string json = "{ \"Modules\": { \"MSCLDevice\": { \"LocalId\": { \"Error\": \"testtest\" } } } }";
+    std::string json = "{ \"Modules\": { \"WSDA200Device\": { \"LocalId\": { \"Error\": \"testtest\" } } } }";
     createConfigFile(filename, json);
 
     auto options = GetDefaultOptions();
@@ -807,10 +807,10 @@ TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigMalformed)
     ModulePtr module;
     createModule(&module, context);
 
-    ASSERT_THROW(module.createDevice("daqmscl://device1", nullptr), NoInterfaceException);
+    ASSERT_THROW(module.createDevice("daqwsda200://device1", nullptr), NoInterfaceException);
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
 {
     auto options = GetDefaultOptions();
 
@@ -820,20 +820,20 @@ TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigDefault)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqmscl://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "MSCLDev1");
+    ASSERT_NO_THROW(ptr = module.createDevice("daqwsda200://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "WSDA200Dev1");
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigNoOptions)
 {
     auto module = CreateModule();
 
     DevicePtr ptr;
-    ASSERT_NO_THROW(ptr = module.createDevice("daqmscl://device1", nullptr));
-    ASSERT_EQ(ptr.getLocalId(), "MSCLDev1");
+    ASSERT_NO_THROW(ptr = module.createDevice("daqwsda200://device1", nullptr));
+    ASSERT_EQ(ptr.getLocalId(), "WSDA200Dev1");
 }
 
-TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
+TEST_F(WSDA200DeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
 {
     auto options = GetOptionsWithReferenceDevice();
 
@@ -843,5 +843,5 @@ TEST_F(MSCLDeviceModuleTestConfig, DeviceModuleJsonConfigEmptyString)
     createModule(&module, context);
 
     DevicePtr ptr;
-    ASSERT_THROW(ptr = module.createDevice("daqmscl://device1", nullptr), GeneralErrorException);
+    ASSERT_THROW(ptr = module.createDevice("daqwsda200://device1", nullptr), GeneralErrorException);
 }

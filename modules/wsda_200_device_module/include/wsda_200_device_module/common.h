@@ -15,6 +15,10 @@
  */
 
 #pragma once
-#include <opendaq/module_exports.h>
+#include <coretypes/common.h>
 
-DECLARE_MODULE_EXPORTS(MSCLDeviceModule)
+#define BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE BEGIN_NAMESPACE_OPENDAQ_MODULE(wsda_200_device_module)
+
+static const std::string WSDA_200_MODULE_NAME = "WSDA200Device";
+
+#define END_NAMESPACE_WSDA_200_DEVICE_MODULE END_NAMESPACE_OPENDAQ_MODULE

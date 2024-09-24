@@ -1,4 +1,4 @@
-#include <mscl_device_module/mscl_can_channel_impl.h>
+#include <wsda_200_device_module/wsda_200_can_channel_impl.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/procedure_factory.h>
 #include <opendaq/signal_factory.h>
@@ -17,13 +17,13 @@
 
 #define PI 3.141592653589793
 
-BEGIN_NAMESPACE_MSCL_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
-MSCLCANChannelImpl::MSCLCANChannelImpl(const ContextPtr& context,
+WSDA200CANChannelImpl::WSDA200CANChannelImpl(const ContextPtr& context,
                                      const ComponentPtr& parent,
                                      const StringPtr& localId,
-                                     const MSCLCANChannelInit& init)
-    : ChannelImpl(FunctionBlockType("MSCLCANChannel",  "CAN", ""), context, parent, localId)
+                                     const WSDA200CANChannelInit& init)
+    : ChannelImpl(FunctionBlockType("WSDA200CANChannel",  "CAN", ""), context, parent, localId)
     , startTime(init.startTime)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
@@ -35,7 +35,7 @@ MSCLCANChannelImpl::MSCLCANChannelImpl(const ContextPtr& context,
     buildSignalDescriptors();
 }
 
-void MSCLCANChannelImpl::initProperties()
+void WSDA200CANChannelImpl::initProperties()
 {
     const auto upperLimitProp = IntPropertyBuilder("UpperLimit", 1000).setMaxValue(10000000).setMinValue(1).build();
     objPtr.addProperty(upperLimitProp);
@@ -48,7 +48,7 @@ void MSCLCANChannelImpl::initProperties()
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propChanged(); };
 }
 
-void MSCLCANChannelImpl::propChangedInternal()
+void WSDA200CANChannelImpl::propChangedInternal()
 {
     lowerLimit = objPtr.getPropertyValue("LowerLimit");
     upperLimit = objPtr.getPropertyValue("UpperLimit");
@@ -56,13 +56,13 @@ void MSCLCANChannelImpl::propChangedInternal()
     counter2 = 0;
 }
 
-void MSCLCANChannelImpl::propChanged()
+void WSDA200CANChannelImpl::propChanged()
 {
     std::scoped_lock lock(sync);
     propChangedInternal();
 }
 
-void MSCLCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
+void WSDA200CANChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     std::scoped_lock lock(sync);
     const auto duration = static_cast<int64_t>(curTime.count() - lastCollectTime.count());
@@ -76,11 +76,11 @@ void MSCLCANChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
-void MSCLCANChannelImpl::globalSampleRateChanged(double /* globalSampleRate */)
+void WSDA200CANChannelImpl::globalSampleRateChanged(double /* globalSampleRate */)
 {
 }
 
-void MSCLCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size_t newSamples)
+void WSDA200CANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size_t newSamples)
 {
     const auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     const auto dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
@@ -115,7 +115,7 @@ void MSCLCANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, siz
     timeSignal.sendPacket(domainPacket);
 }
 
-void MSCLCANChannelImpl::buildSignalDescriptors()
+void WSDA200CANChannelImpl::buildSignalDescriptors()
 {
     const auto arbIdDescriptor = DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::Int32).build();
 
@@ -150,13 +150,13 @@ void MSCLCANChannelImpl::buildSignalDescriptors()
     valueSignal.setDomainSignal(timeSignal);
 }
 
-void MSCLCANChannelImpl::createSignals()
+void WSDA200CANChannelImpl::createSignals()
 {
     valueSignal = createAndAddSignal("CAN");
     timeSignal = createAndAddSignal("CanTime", nullptr, false);
 }
 
-std::string MSCLCANChannelImpl::getEpoch()
+std::string WSDA200CANChannelImpl::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -166,9 +166,9 @@ std::string MSCLCANChannelImpl::getEpoch()
     return { buf };
 }
 
-RatioPtr MSCLCANChannelImpl::getResolution()
+RatioPtr WSDA200CANChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
 }
 
-END_NAMESPACE_MSCL_DEVICE_MODULE
+END_NAMESPACE_WSDA_200_DEVICE_MODULE

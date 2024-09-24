@@ -1,4 +1,4 @@
-#include <mscl_device_module/mscl_channel_impl.h>
+#include <wsda_200_device_module/wsda_200_channel_impl.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/procedure_factory.h>
 #include <opendaq/signal_factory.h>
@@ -21,7 +21,7 @@
 
 #define PI 3.141592653589793
 
-BEGIN_NAMESPACE_MSCL_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
 /// FOR FLOATS
 //template <typename T>
@@ -249,8 +249,8 @@ bool data_flowing = false;
 
 std::mutex load_buffer_lock;
 
-MSCLChannelImpl::MSCLChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const MSCLChannelInit& init)
-    : ChannelImpl(FunctionBlockType("MSCLChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
+WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDA200ChannelInit& init)
+    : ChannelImpl(FunctionBlockType("WSDA200Channel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , waveformType(WaveformType::None)
     , freq(0)
     , ampl(0)
@@ -282,7 +282,7 @@ MSCLChannelImpl::MSCLChannelImpl(const ContextPtr& context, const ComponentPtr& 
 }
 
 
-void MSCLChannelImpl::initMSCL(uint8_t section)
+void WSDA200ChannelImpl::initMSCL(uint8_t section)
 {
 
     std::cout << "\n\nenter the node id " << std::endl;
@@ -300,7 +300,7 @@ void MSCLChannelImpl::initMSCL(uint8_t section)
 //uint64_t last_size;
 
 
-void MSCLChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
+void WSDA200ChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
     if (!args.getIsUpdating())
         signalTypeChanged();
@@ -308,7 +308,7 @@ void MSCLChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArg
         needsSignalTypeChanged = true;
 }
 
-void MSCLChannelImpl::initProperties()
+void WSDA200ChannelImpl::initProperties()
 {
     const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter", "Constant"), 0);
     
@@ -427,20 +427,20 @@ void MSCLChannelImpl::initProperties()
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
 }
 
-void MSCLChannelImpl::packetSizeChangedInternal()
+void WSDA200ChannelImpl::packetSizeChangedInternal()
 {
     fixedPacketSize = objPtr.getPropertyValue("FixedPacketSize");
     packetSize = objPtr.getPropertyValue("PacketSize");
 }
 
-void MSCLChannelImpl::packetSizeChanged()
+void WSDA200ChannelImpl::packetSizeChanged()
 {
     std::scoped_lock lock(sync);
 
     packetSizeChangedInternal();
 }
 
-void MSCLChannelImpl::waveformChangedInternal()
+void WSDA200ChannelImpl::waveformChangedInternal()
 {
     waveformType = objPtr.getPropertyValue("Waveform");
     freq = objPtr.getPropertyValue("Frequency");
@@ -452,19 +452,19 @@ void MSCLChannelImpl::waveformChangedInternal()
           objPtr.getPropertySelectionValue("Waveform").toString(), freq, dc, ampl, noiseAmpl, constantValue);
 }
 
-void MSCLChannelImpl::updateSamplesGenerated()
+void WSDA200ChannelImpl::updateSamplesGenerated()
 {
     if (lastCollectTime.count() > 0)
         samplesGenerated = getSamplesSinceStart(lastCollectTime);
 }
 
-void MSCLChannelImpl::waveformChanged()
+void WSDA200ChannelImpl::waveformChanged()
 {
     std::scoped_lock lock(sync);
     waveformChangedInternal();
 }
 
-void MSCLChannelImpl::signalTypeChanged()
+void WSDA200ChannelImpl::signalTypeChanged()
 {
     std::scoped_lock lock(sync);
     signalTypeChangedInternal();
@@ -472,7 +472,7 @@ void MSCLChannelImpl::signalTypeChanged()
     updateSamplesGenerated();
 }
 
-void MSCLChannelImpl::signalTypeChangedInternal()
+void WSDA200ChannelImpl::signalTypeChangedInternal()
 {
     // TODO: Should global sample rate be coerced? We only coerce it on read now.
     if (objPtr.getPropertyValue("UseGlobalSampleRate"))
@@ -490,20 +490,20 @@ void MSCLChannelImpl::signalTypeChangedInternal()
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
 
-void MSCLChannelImpl::resetCounter()
+void WSDA200ChannelImpl::resetCounter()
 {
     std::scoped_lock lock(sync);
     counter = 0;
 }
 
-uint64_t MSCLChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
+uint64_t WSDA200ChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
 {
     const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
     return samplesSinceStart;
 }
 
 
-void MSCLChannelImpl::collectSamples(std::chrono::microseconds curTime)
+void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     mscl::DataSweeps sweeps = basestation->getData(20, 0);
     int sweep_size = sweeps.size();
@@ -528,9 +528,9 @@ void MSCLChannelImpl::collectSamples(std::chrono::microseconds curTime)
         {
             if (sweeps[i].nodeAddress() == node_id)
             {
-                x_packet_buffer[i] = sweeps[i].data()[0].as_float();
-                y_packet_buffer[i] = sweeps[i].data()[1].as_float();
-                z_packet_buffer[i] = sweeps[i].data()[2].as_float();
+                x_packet_buffer[i] = sweeps[i].data()[0].as_float() * 100;
+                y_packet_buffer[i] = sweeps[i].data()[1].as_float() * 100;
+                z_packet_buffer[i] = sweeps[i].data()[2].as_float() * 100;
             }
             else
                 break; 
@@ -544,7 +544,7 @@ void MSCLChannelImpl::collectSamples(std::chrono::microseconds curTime)
     }
 }
 
-Int MSCLChannelImpl::getDeltaT(const double sr) const
+Int WSDA200ChannelImpl::getDeltaT(const double sr) const
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / sr;
@@ -552,7 +552,7 @@ Int MSCLChannelImpl::getDeltaT(const double sr) const
     return deltaT;
 }
 
-void MSCLChannelImpl::buildSignalDescriptors()
+void WSDA200ChannelImpl::buildSignalDescriptors()
 {
     //const auto valueDescriptor = DataDescriptorBuilder()
     //                             .setSampleType(SampleType::Float64)
@@ -597,7 +597,7 @@ void MSCLChannelImpl::buildSignalDescriptors()
     timeSignal.setDescriptor(timeDescriptor.build());
 }
 
-double MSCLChannelImpl::coerceSampleRate(const double wantedSampleRate) const
+double WSDA200ChannelImpl::coerceSampleRate(const double wantedSampleRate) const
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / wantedSampleRate;
@@ -619,7 +619,7 @@ double MSCLChannelImpl::coerceSampleRate(const double wantedSampleRate) const
     return roundedSampleRate;
 }
 
-void MSCLChannelImpl::createSignals()
+void WSDA200ChannelImpl::createSignals()
 {
     x_signal = createAndAddSignal(fmt::format("G-Link-200 Axis X")); 
     y_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Y")); 
@@ -637,7 +637,7 @@ void MSCLChannelImpl::createSignals()
     //valueSignal.setDomainSignal(timeSignal);
 }
 
-void MSCLChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
+void WSDA200ChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
     std::scoped_lock lock(sync);
 
@@ -647,7 +647,7 @@ void MSCLChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
     updateSamplesGenerated();
 }
 
-std::string MSCLChannelImpl::getEpoch()
+std::string WSDA200ChannelImpl::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -657,14 +657,14 @@ std::string MSCLChannelImpl::getEpoch()
     return { buf };
 }
 
-RatioPtr MSCLChannelImpl::getResolution()
+RatioPtr WSDA200ChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
 }
 
-void MSCLChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
+void WSDA200ChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
 {
-    ChannelImpl<IMSCLChannel>::endApplyProperties(propsAndValues, parentUpdating);
+    ChannelImpl<IWSDA200Channel>::endApplyProperties(propsAndValues, parentUpdating);
 
     if (needsSignalTypeChanged)
     {
@@ -675,4 +675,4 @@ void MSCLChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, 
 
 
 
-END_NAMESPACE_MSCL_DEVICE_MODULE
+END_NAMESPACE_WSDA_200_DEVICE_MODULE
