@@ -23,6 +23,7 @@
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
+
 /// FOR FLOATS
 //template <typename T>
 //class CircularBuffer
