@@ -528,9 +528,9 @@ void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
         {
             if (sweeps[i].nodeAddress() == node_id)
             {
-                x_packet_buffer[i] = sweeps[i].data()[0].as_float() * 100;
-                y_packet_buffer[i] = sweeps[i].data()[1].as_float() * 100; asdafd
-                z_packet_buffer[i] = sweeps[i].data()[2].as_float() * 100;
+                x_packet_buffer[i] = sweeps[i].data()[0].as_float();
+                y_packet_buffer[i] = sweeps[i].data()[1].as_float();
+                z_packet_buffer[i] = sweeps[i].data()[2].as_float();
             }
             else
                 break; 

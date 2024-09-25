@@ -21,7 +21,7 @@ VersionInfoPtr WSDA200DeviceModule::CreateDeviceModuleVersionInfo()
     return result;
 }*/
 
-void WSDA200DeviceModule::readLanxiDeviceInfo()
+void WSDA200DeviceModule::readWSDA200DeviceInfo()
 {
     bool success = false;
 
@@ -50,13 +50,13 @@ void WSDA200DeviceModule::readLanxiDeviceInfo()
     }*/
     if (!success)
     {
-        LOG_E("Unable to determine lanxi device type, using 3050 as default device");
+        LOG_E("Unable to determine WSDA-200 device type, using 3050 as default device");
         m_name = "WSDA_200";
         m_localId = "HBK-WSDA_200-0";
         m_model = "3050";
         m_serialNumber = "0";
         m_macAddress = "00:00:00:00:00:00";
-        m_location = "VT";
+        m_location = "";
         m_contact = "";
         m_hwVersion = "0.0.0.0";
         m_swVersion = "0.0.0";
@@ -124,7 +124,7 @@ WSDA200DeviceModule::WSDA200DeviceModule(ContextPtr context)
              daq::VersionInfo(WSDA_200_DEVICE_MODULE_MAJOR_VERSION, WSDA_200_DEVICE_MODULE_MINOR_VERSION, WSDA_200_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
              WSDA_200_MODULE_NAME)
-    , maxNumberOfDevices(2)
+    , maxNumberOfDevices(1)
 {
     auto options = this->context.getModuleOptions(WSDA_200_MODULE_NAME);
     if (options.hasKey("MaxNumberOfDevices"))

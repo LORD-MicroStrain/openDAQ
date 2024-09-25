@@ -25,7 +25,7 @@ class WSDA200DeviceModule final : public Module
 public:
     std::vector<DeviceInfoPtr> getAvailableDevices();
     VersionInfoPtr CreateDeviceModuleVersionInfo();
-    void readLanxiDeviceInfo();
+    void readWSDA200DeviceInfo();
     std::string getBuildInfo();
 
     StringPtr m_name;
