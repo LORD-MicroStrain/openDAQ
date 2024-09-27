@@ -51,7 +51,7 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
-    //static void fetch_MSCL_data();
+    void setSampleRate(int rate);
 
 
     std::thread fetchThread;
@@ -99,7 +99,7 @@ private:
 
     std::thread acqThread;
 
-    void initMSCL(uint8_t section);
+    void initMSCL();
     
     
 
@@ -120,7 +120,6 @@ private:
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
 
-    void hello();
 };
 
 END_NAMESPACE_WSDA_200_DEVICE_MODULE

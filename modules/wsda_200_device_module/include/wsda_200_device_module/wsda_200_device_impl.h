@@ -22,6 +22,7 @@
 #include <opendaq/logger_component_ptr.h>
 #include <thread>
 #include <condition_variable>
+#include "mscl/mscl.h"
 
 BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
@@ -55,7 +56,7 @@ private:
     void updateGlobalSampleRate();
     std::chrono::microseconds getMicroSecondsSinceDeviceStart() const;
 
-    //void hello();
+     //void hello();
 
     size_t id;
     StringPtr serialNumber;
