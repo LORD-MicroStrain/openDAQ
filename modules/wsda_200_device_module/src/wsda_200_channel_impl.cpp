@@ -23,230 +23,6 @@
 
 BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
-/// FOR FLOATS
-//template <typename T>
-//class CircularBuffer
-//{
-//public:
-//    CircularBuffer(size_t size)
-//        : buffer(size)
-//        , maxSize(size)
-//        , head(0)
-//        , tail(0)
-//        , full(false)
-//    {
-//    }
-//
-//    void add(T item)
-//    {
-//        buffer[head] = item;
-//        if (full)
-//        {
-//            tail = (tail + 1) % maxSize;
-//        }
-//        head = (head + 1) % maxSize;
-//        full = head == tail;
-//    }
-//
-//    T get()
-//    {
-//        if (isEmpty())
-//        {
-//            return 0;
-//        }
-//        T item = buffer[tail];
-//        full = false;
-//        tail = (tail + 1) % maxSize;
-//        return item;
-//    }
-//
-//    bool isEmpty() const
-//    {
-//        return (!full && (head == tail));
-//    }
-//
-//    void printBuffer() const
-//    {
-//        std::cout << "Buffer contents: ";
-//        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-//        {
-//            std::cout << buffer[i] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//
-//    void printReadOrder() const
-//    {
-//        std::cout << "Read order: ";
-//        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-//        {
-//            std::cout << buffer[i] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//
-//    bool isFull() const
-//    {
-//        return full;
-//    }
-//
-//    size_t size() const
-//    {
-//        size_t size = maxSize;
-//        if (!full)
-//        {
-//            if (head >= tail)
-//            {
-//                size = head - tail;
-//            }
-//            else
-//            {
-//                size = maxSize + head - tail;
-//            }
-//        }
-//        return size;
-//    }
-//
-//private:
-//    std::vector<T> buffer;
-//    size_t maxSize;
-//    size_t head;
-//    size_t tail;
-//    bool full;
-//};
-
-
-/// <summary> for MSCL sweeps
-/// 
-/// </summary>
-/// <typeparam name="T"></typeparam>
-template <typename T>
-class CircularBuffer
-{
-public:
-    CircularBuffer(size_t size)
-        : buffer(size)
-        , maxSize(size)
-        , head(0)
-        , tail(0)
-        , full(false)
-    {
-    }
-
-    void add(T item)
-    {
-        buffer[head] = item;
-        if (full)
-        {
-            tail = (tail + 1) % maxSize;
-        }
-        head = (head + 1) % maxSize;
-        full = head == tail;
-    }
-
-    uint64_t get_time()
-    {
-        return buffer[tail].timestamp().nanoseconds() / 1000; 
-    }
-
-    T get()
-    {
-        if (isEmpty())
-        {
-            return buffer[tail];  // total hack for supporting sweeps
-        }
-        T item = buffer[tail];
-        full = false;
-        tail = (tail + 1) % maxSize;
-        return item;
-    }
-
-    bool isEmpty() const
-    {
-        return (!full && (head == tail));
-    }
-
-    void printBuffer() const
-    {
-        std::cout << "Buffer contents: ";
-        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-        {
-            std::cout << buffer[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    void printReadOrder() const
-    {
-        std::cout << "Read order: ";
-        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-        {
-            std::cout << buffer[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    bool isFull() const
-    {
-        return full;
-    }
-
-    size_t size() const
-    {
-        size_t size = maxSize;
-        if (!full)
-        {
-            if (head >= tail)
-            {
-                size = head - tail;
-            }
-            else
-            {
-                size = maxSize + head - tail;
-            }
-        }
-        return size;
-    }
-
-private:
-    std::vector<T> buffer;
-    size_t maxSize;
-    size_t head;
-    size_t tail;
-    bool full;
-};
-/*
-int main()
-{
-    CircularBuffer<int> cb(5);
-
-    cb.add(1);
-    cb.add(2);
-    cb.add(3);
-    cb.add(4);
-    cb.add(5);
-
-    std::cout << "Buffer contents: ";
-    while (!cb.isEmpty())
-    {
-        std::cout << cb.get() << " ";
-    }
-    std::cout << std::endl;
-
-    return 0;
-}*/
-//mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
-//mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
-//mscl::BaseStation basestation(connection);
-////int node_id = 12345;
-// //int node_id = 5;
-//int node_id = 40415;
-
-CircularBuffer<mscl::DataSweep> sweep_buffer(128);
-
-int num_sweeps = 0;
-bool data_flowing = false;
-
 std::mutex load_buffer_lock;
 
 WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDA200ChannelInit& init)
@@ -268,7 +44,7 @@ WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const Componen
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
 {
-
+    initMSCL();
 
     initProperties();
     waveformChangedInternal();
@@ -277,28 +53,114 @@ WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const Componen
     resetCounter();
     createSignals();
     buildSignalDescriptors();
-
-    initMSCL(0);
 }
 
-
-void WSDA200ChannelImpl::initMSCL(uint8_t section)
+void WSDA200ChannelImpl::initMSCL()
 {
-
-    std::cout << "\n\nenter the node id " << std::endl;
-    std::cin >> node_id;
-
-    std::cout << "enter the COM port " << std::endl;
+    std::cout << "\nenter the COM port: ";
     std::cin >> comPort;
-
+    std::cout << "\n";
 
     mscl::Connection connection = mscl::Connection::Serial(comPort, 3000000);
+    // mscl::BaseStation* basestation(connection);
     basestation = new mscl::BaseStation(connection);
+
+    std::cout << "polling for nodes sampling.";
+    for (int k = 0; k < 0xFFFFFFF; k++);
+    std::cout << ".";
+    for (int k = 0; k < 0xFFFFFFF; k++);
+    std::cout << ".";
+    for (int k = 0; k < 0xFFFFFFF; k++);
+    std::cout << ".";
+    for (int k = 0; k < 0xFFFFFFF; k++);
+    std::cout << "." << std::endl;
+
+    mscl::DataSweeps sweeps = basestation->getData(20, 0);
+    int sweep_size = sweeps.size();
+
+    // mscl::WirelessNode node1(sweeps[0].nodeAddress(), basestation);
+
+    int node_list[100];
+    int node_list_size = 0;
+
+    bool found = false;
+
+    int z, k;
+    for (k = 0; k < sweep_size; k++)  // iterates through sweeps
+    {
+        found = 0;
+        for (z = 0; z < node_list_size; z++)  // checks our node list
+            if (node_list[z] == (int) sweeps[k].nodeAddress())
+                found = 1;
+
+        if (!found)
+        {
+            auto temp = mscl::WirelessNode(sweeps[k].nodeAddress(), *basestation);
+
+            /*
+            auto config = mscl::WirelessNodeConfig();
+            config.samplingMode(mscl::WirelessTypes::samplingMode_nonSync);
+
+            mscl::SetToIdleStatus idleStatus = temp.setToIdle();  std::cout << "\n";
+
+            std::cout << "\nidling"; 
+            while (!idleStatus.complete())
+            {
+                std::cout << ".";
+                for (int k = 0; k < 0xFFFFFFF; k++); 
+            }
+
+            switch (idleStatus.result())
+            {
+                case mscl::SetToIdleStatus::setToIdleResult_success:
+                    std::cout << "Node is now in idle mode." << std::endl;
+                    break;
+
+                case mscl::SetToIdleStatus::setToIdleResult_canceled:
+                    std::cout << "Set to Idle was canceled!" << std::endl;
+                    break;
+
+                case mscl::SetToIdleStatus::setToIdleResult_failed:
+                    std::cout << "Set to Idle has failed!" << std::endl;
+                    break;
+            }
+
+            auto active = temp.getActiveChannels().count();
+            */
+
+            std::cout << "\n\nnode #" << z + 1 << "\n";
+            //std::cout << "\nmodel name: " << temp.model() << " ";
+            //std::cout << "\nactive channels: " << (int)temp.getActiveChannels().count();  // the node address the sweep[k] is from
+            std::cout << "\nnode address: " << (int) sweeps[k].nodeAddress();  // the node address the sweep[k] is from
+            std::cout << "\nnode samplerate: " << sweeps[k].sampleRate().samples();            // the sample rate of the sweep[k]
+            std::cout << "\nnode sampling type: " << sweeps[k].samplingType();  // the SamplingType of the sweep[k] (sync, nonsync, burst, etc.)
+            std::cout << "\n";
+
+            sampleRate = sweeps[k].sampleRate().samples();
+
+            node_list[z] = sweeps[k].nodeAddress();
+            node_list_size++;
+
+            //temp.applyConfig(config); 
+            //temp.startNonSyncSampling(); 
+        }
+    }
+
+    std::cout << "\n\nenter the node id: ";
+    std::cin >> node_id;
+
+    for (mscl::DataSweep sweep : sweeps)
+        if (sweep.nodeAddress() == node_id)
+        {
+            //sampleRate = sweep.sampleRate().samples();
+            sampleRate = sweep.sampleRate().samples(); 
+            break;
+        }
+
 }
 
 //uint64_t then;
 //uint64_t last_size;
-
 
 void WSDA200ChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
@@ -475,17 +337,18 @@ void WSDA200ChannelImpl::signalTypeChanged()
 void WSDA200ChannelImpl::signalTypeChangedInternal()
 {
     // TODO: Should global sample rate be coerced? We only coerce it on read now.
-    if (objPtr.getPropertyValue("UseGlobalSampleRate"))
+    /* if (objPtr.getPropertyValue("UseGlobalSampleRate"))
         sampleRate = globalSampleRate;
     else
         sampleRate = objPtr.getPropertyValue("SampleRate");
+     */   
     clientSideScaling = objPtr.getPropertyValue("ClientSideScaling");
 
     customRange = objPtr.getPropertyValue("CustomRange");
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 512;  // PETER heres where sample rate is established
+    //sampleRate = 256;  // PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -505,36 +368,58 @@ uint64_t WSDA200ChannelImpl::getSamplesSinceStart(std::chrono::microseconds time
 
 void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    mscl::DataSweeps sweeps = basestation->getData(20, 0);
+    mscl::DataSweeps sweeps = basestation->getData(100, 0);
     int sweep_size = sweeps.size();
 
-    if (sweep_size > 0)
+    int sweeps_we_want = 0;
+    uint64_t sweep_time;
+    bool first = 0; 
+
+    for (int k = 0; k < sweep_size; k++)
+        if (sweeps.data()[k].nodeAddress() == node_id)
+        {
+            sweeps_we_want++;
+
+            if (!first)
+            {
+                auto temp = sweeps.data()[k]; 
+                sweep_time = temp.timestamp().nanoseconds() / 1000; 
+                first = 1; 
+            }
+        }
+
+    if (sweeps_we_want > 0)
     {
-        uint64_t sweep_time = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
-        samplesGenerated += sweep_size;
+        //samplesGenerated += sweep_size;
+        samplesGenerated += sweeps_we_want;
 
         DataPacketPtr x_packet, y_packet, z_packet; 
-        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
+        //auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
+        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweeps_we_want, sweep_time);
 
-        x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), sweep_size);
-        y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), sweep_size);
-        z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), sweep_size);
+        x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), sweeps_we_want);
+        y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), sweeps_we_want);
+        z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), sweeps_we_want);
 
         double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
         double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
         double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
-        
+
+
+        int x = 0, y = 0;
+        int count = 0; 
         for (int i = 0; i < sweep_size; i++)
-        {
             if (sweeps[i].nodeAddress() == node_id)
             {
-                x_packet_buffer[i] = sweeps[i].data()[0].as_float();
-                y_packet_buffer[i] = sweeps[i].data()[1].as_float();
-                z_packet_buffer[i] = sweeps[i].data()[2].as_float();
+                x_packet_buffer[count] = sweeps[i].data()[0].as_float();
+                y_packet_buffer[count] = sweeps[i].data()[1].as_float();
+                z_packet_buffer[count] = sweeps[i].data()[2].as_float();
+                count++; 
+                x++;
             }
             else
-                break; 
-        }
+                y++; 
+        
 
         x_signal.sendPacket(std::move(x_packet));
         y_signal.sendPacket(std::move(y_packet));
