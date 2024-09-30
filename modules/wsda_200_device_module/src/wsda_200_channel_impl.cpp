@@ -23,8 +23,6 @@
 
 BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
-std::mutex load_buffer_lock;
-
 WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDA200ChannelInit& init)
     : ChannelImpl(FunctionBlockType("WSDA200Channel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , waveformType(WaveformType::None)

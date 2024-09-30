@@ -20,9 +20,9 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Add a reference device and set it as root
     //auto device = instance.addDevice("daqref://device0");
-    //auto device = instance.addDevice("daq.opcua://127.0.0.1");
+    auto device = instance.addDevice("daq.opcua://127.0.0.1");
 
-    auto device = instance.addDevice("daqwsda200://device0");
+    //auto device = instance.addDevice("daqwsda200://device0");
     //auto device = instance.addDevice("daqmscl://device0");
 
 
