@@ -45,6 +45,24 @@ public:
 
 
 private:
+
+    char comPort[7] = {0,0,0,0,0,0,0};
+    int node_id;
+    mscl::BaseStation* basestation;
+    int node_selection;
+    int channel_sample_rate;
+
+    void initMSCL();
+    void nodePollAndSelection();
+    void idleAll();
+
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr timeSignal;
+    SignalConfigPtr channel_1;
+    SignalConfigPtr channel_2;
+    SignalConfigPtr channel_3;
+
+    /// ////////////////////////////////////////
     void initClock();
     void initIoFolder();
     void initSyncComponent();

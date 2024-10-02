@@ -23,6 +23,12 @@ BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 class WSDA200DeviceModule final : public Module
 {
 public:
+    explicit WSDA200DeviceModule(ContextPtr context);
+    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
+    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
+    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
+
+private:
     std::vector<DeviceInfoPtr> getAvailableDevices();
     VersionInfoPtr CreateDeviceModuleVersionInfo();
     void readLanxiDeviceInfo();
@@ -40,12 +46,7 @@ public:
     StringPtr m_connectorConfiguration;
 
     /// ///////////////////////////////////////////////////////////////////////
-    explicit WSDA200DeviceModule(ContextPtr context);
-    ListPtr<IDeviceInfo> onGetAvailableDevices() override;
-    DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
-    DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
 
-private:
     std::vector<WeakRefPtr<IDevice>> devices;
     std::mutex sync;
     size_t maxNumberOfDevices;

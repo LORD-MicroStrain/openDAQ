@@ -23,6 +23,16 @@
 #include <thread>
 #include "mscl/mscl.h"
 
+#include "mscl/Types.h"
+#include "mscl/MicroStrain/Wireless/WirelessModels.h"
+#include "mscl/MicroStrain/Wireless/WirelessNode.h"
+#include "mscl/MicroStrain/Wireless/WirelessTypes.h"
+#include "mscl/MicroStrain/Wireless/Configuration/WirelessNodeConfig.h"
+#include "mscl/MicroStrain/Wireless/SyncNetworkInfo.h"
+
+
+//#include "mscl/MicroStrain/Wireless/Features/SyncNetworkInfo.h"
+
 BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
 
 enum class WaveformType { Sine, Rect, None, Counter, ConstantValue };
@@ -37,6 +47,8 @@ struct WSDA200ChannelInit
 {
     size_t index;
     double globalSampleRate;
+    int node_sample_rate;
+    int node_id; 
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
 };
@@ -51,16 +63,32 @@ public:
     void globalSampleRateChanged(double newGlobalSampleRate) override;
     static std::string getEpoch();
     static RatioPtr getResolution();
-    void setSampleRate(int rate);
-
-
+    static void setSampleRate(int rate); 
     std::thread fetchThread;
+    mscl::BaseStation* basestation;
 
 
 protected:
     void endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating) override;
 
 private:
+    /// MSCL/Wireless/////////////////////////////////////
+
+    char comPort[7] = {0,0,0,0,0,0,0};
+    int node_id;
+    int node_selection;
+
+    void initMSCL();
+    void nodePollAndSelection();
+    void idleAll();
+
+    SignalConfigPtr valueSignal;
+    SignalConfigPtr timeSignal;
+    SignalConfigPtr channel_1;
+    SignalConfigPtr channel_2;
+    SignalConfigPtr channel_3;
+
+    //////////////////////////////////////////////////////
     WaveformType waveformType;
     double freq;
     double ampl;
@@ -68,6 +96,7 @@ private:
     double noiseAmpl;
     double constantValue;
     double sampleRate;
+    int node_sample_rate; 
     StructPtr customRange;
     bool clientSideScaling;
     size_t index;
@@ -80,28 +109,10 @@ private:
     uint64_t samplesGenerated;
     std::default_random_engine re;
     std::normal_distribution<double> dist;
-    SignalConfigPtr valueSignal;
-    SignalConfigPtr x_signal;
-    SignalConfigPtr y_signal;
-    SignalConfigPtr z_signal;
-    SignalConfigPtr timeSignal;
-    SignalConfigPtr x_time;
-    SignalConfigPtr y_time;
-    SignalConfigPtr z_time;
     bool needsSignalTypeChanged;
     bool fixedPacketSize;
     uint64_t packetSize;
-
-    /// MSCL/Wireless
-    char comPort[7] = {0,0,0,0,0,0,0};
-    int node_id = 40415;
-    mscl::BaseStation* basestation;
-
     std::thread acqThread;
-
-    void initMSCL();
-    
-    
 
     void initProperties();
     void packetSizeChangedInternal();
@@ -119,7 +130,6 @@ private:
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
-
 };
 
 END_NAMESPACE_WSDA_200_DEVICE_MODULE
