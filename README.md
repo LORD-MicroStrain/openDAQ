@@ -1,7 +1,7 @@
 ## MicroStrain Wireless Module
 The wireless module is currently called wsda_200_device_module and is located here: openDAQ\modules\wsda_200_device_module. 
 
-Example projects device_server and function_block_example have been modified to demonstrate the wsda_200_device_module. The renderer in the ref_fb_module has also been modified to accomodate timestamp jitter without drawing gaps in the data. Use of the wsda_200_device_module with out the modification to the renderer will likely show gaps in the data. These gaps do not represent dropped packets.
+Example projects device_server and function_block_example have been modified to demonstrate the wsda_200_device_module. The renderer in the ref_fb_module has also been modified to accomodate timestamp jitter without drawing gaps in the data. Use of the wsda_200_device_module with out the modified renderer in the ref_fb_module will likely show gaps in the data. These gaps do not represent dropped packets.
 
 A wireless node and a base station are currently required to run the module. The node must be configured and set sampling through SensorConnect. Please reach out to jeffrey_tonn@hbkworld.com or peter_sigward@hbkworld.com for instructions.
 
