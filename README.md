@@ -3,8 +3,10 @@
 JEFF’S NOTE: These instructions are to address an issue that is only present on windows builds. Linux builds work fine. The issue is that MSCL requires an old version of boost. These instructions detail how to install boost for MSCL on a windows machine. 
 
 There are two solutions so that manual installation of boost will not be required in the future:
-update MSCL so that it uses the current version of boost
-figure out how to link to an earlier version of boost in the windows build (as currently occurs on Linux machines)
+
+1) update MSCL so that it uses the current version of boost
+
+2) figure out how to link to an earlier version of boost in the windows build (as currently occurs on Linux machines)
 
 - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
