@@ -1,12 +1,3 @@
-<h3 align="center">
-    <a href="https://opendaq.com" target="blank_">
-        <img height="100" alt="openDAQ" src="media/openDAQ-logo-orange-blue-rgb.svg" />
-    </a>
-    <br>
-    SDK that bridges the gap between data acquisition devices, in an era where incompatibility is the norm
-</h3>
-
----
 ## MSCL for MicroStrain wireless module (required only for Windows)
 
 JEFF’S NOTE: These instructions are to address an issue that is only present on windows builds. Linux builds work fine. The issue is that MSCL requires an old version of boost. These instructions detail how to install boost for MSCL on a windows machine. 
@@ -41,7 +32,16 @@ Clone the repo: git clone https://github.com/LORD-MicroStrain/openDAQ.git
 
 Then follow the build instructions documented in the openDAQ README
 
-## openDAQ
+
+<h3 align="center">
+    <a href="https://opendaq.com" target="blank_">
+        <img height="100" alt="openDAQ" src="media/openDAQ-logo-orange-blue-rgb.svg" />
+    </a>
+    <br>
+    SDK that bridges the gap between data acquisition devices, in an era where incompatibility is the norm
+</h3>
+
+---
 openDAQ is a software development kit that allows for easy integration of data acquisition devices into its ecosystem.
 It provides a simple generic API that allows users to connect to Data Acquisition (DAQ) devices that are compliant with
 openDAQ and any of its supported open standards. With the SDK, users can configure properties of devices and read their
