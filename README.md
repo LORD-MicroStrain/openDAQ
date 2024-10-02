@@ -41,7 +41,7 @@ Clone the repo: git clone https://github.com/LORD-MicroStrain/openDAQ.git
 
 Then follow the build instructions documented in the openDAQ README
 
-
+## openDAQ
 openDAQ is a software development kit that allows for easy integration of data acquisition devices into its ecosystem.
 It provides a simple generic API that allows users to connect to Data Acquisition (DAQ) devices that are compliant with
 openDAQ and any of its supported open standards. With the SDK, users can configure properties of devices and read their
