@@ -48,7 +48,9 @@ struct WSDA200ChannelInit
     size_t index;
     double globalSampleRate;
     int node_sample_rate;
-    int node_id; 
+    int node_id;
+    int num_signals; 
+    mscl::BaseStation* basestation;
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
 };
@@ -65,7 +67,7 @@ public:
     static RatioPtr getResolution();
     static void setSampleRate(int rate); 
     std::thread fetchThread;
-    mscl::BaseStation* basestation;
+
 
 
 protected:
@@ -77,16 +79,17 @@ private:
     char comPort[7] = {0,0,0,0,0,0,0};
     int node_id;
     int node_selection;
+    const int num_signals; 
 
-    void initMSCL();
-    void nodePollAndSelection();
-    void idleAll();
-
+    mscl::Connection connection; 
+    mscl::BaseStation* basestation;
+    mscl::DataSweeps sweeps; 
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
     SignalConfigPtr channel_1;
     SignalConfigPtr channel_2;
     SignalConfigPtr channel_3;
+    SignalConfigPtr* channel_list; 
 
     //////////////////////////////////////////////////////
     WaveformType waveformType;
@@ -130,6 +133,7 @@ private:
     void buildSignalDescriptors();
     [[nodiscard]] double coerceSampleRate(const double wantedSampleRate) const;
     void signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args);
+    void delay(int counter, int times); 
 };
 
 END_NAMESPACE_WSDA_200_DEVICE_MODULE

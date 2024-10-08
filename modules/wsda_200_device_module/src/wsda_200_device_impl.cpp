@@ -25,14 +25,13 @@ WSDA200DeviceImpl::WSDA200DeviceImpl(size_t id, const PropertyObjectPtr& config,
                           : throw ArgumentNullException("Logger must not be null"))
 {
     initMSCL(); 
-
-    initIoFolder();
-    initSyncComponent();
+    initIoFolder();  // explore this further-- maybe has pritable output
+    //initSyncComponent();
     initClock();
     initProperties(config);
     updateNumberOfChannels();
-    enableCANChannel();
-    updateAcqLoopTime();
+    //enableCANChannel();
+    //updateAcqLoopTime();
 
     if (config.assigned())
     {
@@ -95,62 +94,23 @@ void WSDA200DeviceImpl::initMSCL()
     nodePollAndSelection();  
  }
 
-void WSDA200DeviceImpl::nodePollAndSelection()
+void WSDA200DeviceImpl::nodeSearch()
 {
-    std::cout << "\n\npolling for nodes sampling.";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
+    sweeps = basestation->getData(1000, 0);
 
-    //basestation->resetRadio(); 
-    mscl::DataSweeps sweeps = basestation->getData(1000, 0);
-    
-
-    int sweep_size = basestation->getData(1000, 0).size();
-
-    if (sweep_size == 0)
-    {
-        //basestation->resetRadio();
-        mscl::Connection connection = mscl::Connection::TcpIp("fd7a:cafa:0eb7:6578:0001:d585::1", 5000);  // address for jeffs wsda-2000
-        basestation = new mscl::BaseStation(connection);
-
-        std::cout << "\n\nretrying"; 
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        sweeps = basestation->getData(1000, 0);
-        sweep_size = sweeps.size();
-
-        if (sweep_size > 0)
-            auto a = 0;
-    }
-
-    int node_list[20];
+    int node_list[20]; // can only find up to 20 nodes 
     int node_list_size = 0;
     bool found_in_node_list;
 
-
     int z, k;
-    for (k = 0; k < sweep_size; k++)  // iterates through sweeps
+    for (k = 0; k < sweeps.size(); k++)  // iterates through sweeps
     {
         found_in_node_list = false;
         for (z = 0; z < node_list_size; z++)  // checks our node list for unique id
             if (node_list[z] == (int) sweeps[k].nodeAddress())
                 found_in_node_list = true;
 
-        if (!found_in_node_list)
+        if (!found_in_node_list) // if we didn't find this node (sweeps[k]) in our list
         {
             auto temp = mscl::WirelessNode(sweeps[k].nodeAddress(), *basestation);
 
@@ -168,6 +128,14 @@ void WSDA200DeviceImpl::nodePollAndSelection()
             node_list_size++;
         }
     }
+}
+
+void WSDA200DeviceImpl::nodePollAndSelection()
+{
+    std::cout << "\n\npolling for nodes sampling.";
+    delay(0xFFFFFFF, 10); // gives us time to collect ample samples 
+
+    nodeSearch();  
 
     std::cout << "\n\nenter the node id: ";
     std::cin >> node_id;
@@ -177,23 +145,15 @@ void WSDA200DeviceImpl::nodePollAndSelection()
         {
             // sampleRate = sweep.sampleRate().samples();
             channel_sample_rate = sweep.sampleRate().samples();  // establishes sample rate for opendaq
+            num_signals = sweep.data().size();                   // based on node_id we selected
             break;
         }
-    
 }
 
 void WSDA200DeviceImpl::idleAll()
 {
     std::cout << "\n\npolling for nodes to idle";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
+    delay(0xFFFFFF, 5); 
 
     mscl::DataSweeps sweeps = basestation->getData(100, 0);
     int sweep_size = sweeps.size();
@@ -259,6 +219,46 @@ void WSDA200DeviceImpl::idleAll()
     }
 } 
 
+void WSDA200DeviceImpl::updateNumberOfChannels()
+{
+    std::size_t num = objPtr.getPropertyValue("NumberOfChannels");
+    //LOG_I("Properties: NumberOfChannels {}", num); PETER PETER
+    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
+
+    std::scoped_lock lock(sync);
+
+    if (num < channels.size())
+    {
+        std::for_each(std::next(channels.begin(), num), channels.end(), [this](const ChannelPtr& ch)
+            {
+                removeChannel(nullptr, ch);
+            });
+        channels.erase(std::next(channels.begin(), num), channels.end());
+    }
+
+    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
+    for (auto i = channels.size(); i < num; i++)
+    {
+        WSDA200ChannelInit init;
+        init.basestation = basestation; 
+        init.index = i;
+        init.globalSampleRate = globalSampleRate;
+        init.node_id = node_id; 
+        init.node_sample_rate = channel_sample_rate;
+        init.startTime = microSecondsSinceDeviceStart;
+        init.num_signals = num_signals; 
+        init.microSecondsFromEpochToStartTime = microSecondsFromEpochToDeviceStart; 
+
+        auto localId = fmt::format("node_id_"+std::to_string(node_id));
+        //auto localId = fmt::format("WSDA200Ch{}", i);
+        auto ch = createAndAddChannel<WSDA200ChannelImpl>(aiFolder, localId, init);
+        channels.push_back(std::move(ch));
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 WSDA200DeviceImpl::~WSDA200DeviceImpl()
 {
@@ -275,7 +275,7 @@ DeviceInfoPtr WSDA200DeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& se
 {
     auto devInfo = DeviceInfo(fmt::format("daqwsda200://device{}", id));
     devInfo.setName(fmt::format("Device {}", id));
-    devInfo.setManufacturer("openDAQ");
+    devInfo.setManufacturer("MicroStrain");
     devInfo.setModel("WSDA200 refrence device");
     devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
@@ -391,11 +391,14 @@ void WSDA200DeviceImpl::initProperties(const PropertyObjectPtr& config)
     size_t numberOfChannels = 1;
     bool enableCANChannel = false;
 
+    //config.removeProperty("userName"); 
+    //config.addProperty("name");
+
     if (config.assigned())
     {
         if (config.hasProperty("NumberOfChannels"))
             numberOfChannels = config.getPropertyValue("NumberOfChannels");
-
+                                                                                         // NUMBER OF CHANNELS
         if (config.hasProperty("EnableCANChannel"))
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
     } 
@@ -419,60 +422,23 @@ void WSDA200DeviceImpl::initProperties(const PropertyObjectPtr& config)
 
     
     const auto globalSampleRatePropInfo =
-
         FloatPropertyBuilder("GlobalSampleRate", channel_sample_rate).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
         //FloatPropertyBuilder("GlobalSampleRate", 1000.0).setUnit(Unit("Hz")).setMinValue(1.0).setMaxValue(1000000.0).build();
 
-    objPtr.addProperty(globalSampleRatePropInfo);
+    objPtr.addProperty(globalSampleRatePropInfo);                                                                   //GLOBAL SAMPLE RATE
     objPtr.getOnPropertyValueWrite("GlobalSampleRate") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { updateGlobalSampleRate(); };
 
-    const auto acqLoopTimePropInfo =
-        IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
+    const auto acqLoopTimePropInfo = IntPropertyBuilder("AcquisitionLoopTime", 20).setUnit(Unit("ms")).setMinValue(10).setMaxValue(1000).build();
 
     objPtr.addProperty(acqLoopTimePropInfo);
-    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {
+    objPtr.getOnPropertyValueWrite("AcquisitionLoopTime") += [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) {    //AQUISITION TIME
         updateAcqLoopTime();
     };
 
     objPtr.addProperty(BoolProperty("EnableCANChannel", enableCANChannel));
-    objPtr.getOnPropertyValueWrite("EnableCANChannel") +=
+    objPtr.getOnPropertyValueWrite("EnableCANChannel") +=                                                         //ENABLE CAN CHANNEL
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
-}
-
-void WSDA200DeviceImpl::updateNumberOfChannels()
-{
-    std::size_t num = objPtr.getPropertyValue("NumberOfChannels");
-    LOG_I("Properties: NumberOfChannels {}", num);
-    auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
-
-    std::scoped_lock lock(sync);
-
-    if (num < channels.size())
-    {
-        std::for_each(std::next(channels.begin(), num), channels.end(), [this](const ChannelPtr& ch)
-            {
-                removeChannel(nullptr, ch);
-            });
-        channels.erase(std::next(channels.begin(), num), channels.end());
-    }
-
-    auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-    for (auto i = channels.size(); i < num; i++)
-    {
-        WSDA200ChannelInit init;
-        init.index = i;
-        init.globalSampleRate = globalSampleRate;
-        init.node_id = node_id; 
-        init.node_sample_rate = channel_sample_rate;
-        init.startTime = microSecondsSinceDeviceStart;
-        init.microSecondsFromEpochToStartTime = microSecondsFromEpochToDeviceStart; 
-        //{ i, globalSampleRate, channel_sample_rate, node_id, microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart };
-
-        auto localId = fmt::format("WSDA200Ch{}", i);
-        auto ch = createAndAddChannel<WSDA200ChannelImpl>(aiFolder, localId, init);
-        channels.push_back(std::move(ch));
-    }
 }
 
 void WSDA200DeviceImpl::enableCANChannel()
@@ -516,6 +482,16 @@ void WSDA200DeviceImpl::updateAcqLoopTime()
 
     std::scoped_lock lock(sync);
     this->acqLoopTime = static_cast<size_t>(loopTime);
+}
+
+void WSDA200DeviceImpl::delay(int counter, int times)
+{
+    std::cout << ".";
+    for (int z = 0; z < times; z++)
+    {
+        for (int k = 0; k < counter; k++); 
+        std::cout << ".";
+    }
 }
 
 END_NAMESPACE_WSDA_200_DEVICE_MODULE

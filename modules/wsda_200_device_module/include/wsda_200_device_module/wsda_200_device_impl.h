@@ -45,22 +45,23 @@ public:
 
 
 private:
+    // MSCL / Wireless /////////////////////////
 
     char comPort[7] = {0,0,0,0,0,0,0};
     int node_id;
-    mscl::BaseStation* basestation;
     int node_selection;
     int channel_sample_rate;
+    int num_signals;
+
+    mscl::BaseStation* basestation;
+    mscl::DataSweeps sweeps; 
+    mscl::Connection connection;
 
     void initMSCL();
     void nodePollAndSelection();
+    void nodeSearch(); 
     void idleAll();
-
-    SignalConfigPtr valueSignal;
-    SignalConfigPtr timeSignal;
-    SignalConfigPtr channel_1;
-    SignalConfigPtr channel_2;
-    SignalConfigPtr channel_3;
+    void delay(int counter, int times); 
 
     /// ////////////////////////////////////////
     void initClock();

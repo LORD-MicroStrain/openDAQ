@@ -14,35 +14,27 @@ using namespace daq;
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
-
     // Create an Instance, loading modules at MODULE_PATH
     const InstancePtr instance = Instance(MODULE_PATH);
 
     // Add a reference device and set it as root
     //auto device = instance.addDevice("daqref://device0");
     //auto device = instance.addDevice("daq.opcua://127.0.0.1");
-
     auto device = instance.addDevice("daqwsda200://device0");
-    //auto device = instance.addDevice("daqmscl://device0");
-
-
-    //// use static IP
-    //auto device = instance.addDevice("daq.opcua://192.168.0.1");
 
     // Add renderer function block
     FunctionBlockPtr renderer = instance.addFunctionBlock("RefFBModuleRenderer");
 
     // Set renderer to draw 2.5s of data
-    renderer.setPropertyValue("Duration", 1.0);
+    renderer.setPropertyValue("Duration", 10.0);
 
     // load all available signals in Channel 0
-    const auto signals = device.getChannels()[0].getSignalsRecursive(); 
+    const auto channel = device.getChannels(); 
+    const auto signals = device.getChannels()[0].getSignalsRecursive();
 
-    renderer.getInputPorts()[0].connect(signals[0]);  
-    renderer.getInputPorts()[1].connect(signals[1]);
-    renderer.getInputPorts()[2].connect(signals[2]);
+    // -1 to avoid last signal (its a time signal we dont want to plot)
+    for(int k = 0; k < signals.getCount()-1; k++)
+        renderer.getInputPorts()[k].connect(signals[k]);  
 
-    for (;;);
-
-    return 0;
+    for (;;); return 0;
 }

@@ -671,6 +671,8 @@ void RendererFbImpl::onDisconnected(const InputPortPtr& inputPort)
 
 void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height)
 {
+    resolution = 3;
+
     switch (resolution)
     {
         case 0:
@@ -686,8 +688,8 @@ void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height
             height = 768;
             break;
         case 3:
-            width = 1280;
-            height = 720;
+            width = 1280 * 2;
+            height = 720 * 2; 
             break;
     }
 }

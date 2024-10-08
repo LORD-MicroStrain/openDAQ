@@ -30,8 +30,10 @@ WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const Componen
     , dc(0)
     , noiseAmpl(0)
     , constantValue(0)
-    , sampleRate(init.node_sample_rate)
     , node_id(init.node_id)
+    , num_signals(init.num_signals)
+    , basestation(init.basestation)
+    , sampleRate(init.node_sample_rate)
     , index(init.index)
     , globalSampleRate(init.globalSampleRate)
     , counter(0)
@@ -42,223 +44,232 @@ WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const Componen
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
 {
-    //initMSCL();
-
-    initProperties();
+    //initProperties();
     //waveformChangedInternal();
     //signalTypeChangedInternal();
     //packetSizeChangedInternal();
-    resetCounter();
+    //resetCounter();
     createSignals();
     buildSignalDescriptors();
 }
 
-void WSDA200ChannelImpl::initMSCL()
+void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    int option = 0;
-    bool choice_done = false; 
-
-    while (!choice_done)
-    {
-        std::cout << "\n\n1: WSDA-200 \n2: WSDA-2000\nENTER OPTION: ";
-        std::cin >> option;
-
-        if (option == 1)                                // WSDA-200 
-        {
-            std::cout << "\nenter the COM port: ";
-            std::cin >> comPort;
-            mscl::Connection connection = mscl::Connection::Serial(comPort, 3000000);
-            basestation = new mscl::BaseStation(connection);
-
-            choice_done = true;
-        }
-        else if (option == 2)                           // WSDA-2000
-        {
-            char *tcpaddress, *ipaddress; 
-            std::cout << "\nEnter your tcp address: \n";
-            //std::cin >> tcpaddress; 
-            std::cout << "\nEnter your ip address: "; 
-            //std::cin >> ipaddress;
-
-            mscl::Connection connection = mscl::Connection::TcpIp("fd7a:cafa:0eb7:6578:0001:d585::1", 5000);   // address for jeffs wsda-2000
-            basestation = new mscl::BaseStation(connection);
-
-            choice_done = true;
-        }
-        else
-        {
-            for (int k = 0; k < 0xFFFFFFF; k++); 
-            std::cout << "\nretry\n";
-            for (int k = 0; k < 0xFFFFFFF; k++); 
-        }
-    }
-
-    //idleAll(); 
-    nodePollAndSelection();  
- }
-
-void WSDA200ChannelImpl::nodePollAndSelection()
-{
-    std::cout << "\n\npolling for nodes sampling.";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-
-    //basestation->resetRadio(); 
-    mscl::DataSweeps sweeps = basestation->getData(1000, 0);
-    
-
-    int sweep_size = basestation->getData(1000, 0).size();
-
-    if (sweep_size == 0)
-    {
-        //basestation->resetRadio();
-        mscl::Connection connection = mscl::Connection::TcpIp("fd7a:cafa:0eb7:6578:0001:d585::1", 5000);  // address for jeffs wsda-2000
-        basestation = new mscl::BaseStation(connection);
-
-        std::cout << "\n\nretrying"; 
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        std::cout << ".";
-        for (int k = 0; k < 0xFFFFFFF; k++);
-        sweeps = basestation->getData(1000, 0);
-        sweep_size = sweeps.size();
-
-        if (sweep_size > 0)
-            auto a = 0;
-    }
-
-    int node_list[20];
-    int node_list_size = 0;
-    bool found_in_node_list;
-
-
-    int z, k;
-    for (k = 0; k < sweep_size; k++)  // iterates through sweeps
-    {
-        found_in_node_list = false;
-        for (z = 0; z < node_list_size; z++)  // checks our node list for unique id
-            if (node_list[z] == (int) sweeps[k].nodeAddress())
-                found_in_node_list = true;
-
-        if (!found_in_node_list)
-        {
-            auto temp = mscl::WirelessNode(sweeps[k].nodeAddress(), *basestation);
-
-            std::cout << "\n\nnode #" << z + 1 << "\n";
-            // std::cout << "\nmodel name: " << temp.model() << " ";
-            // std::cout << "\nactive channels: " << (int)temp.getActiveChannels().count();  
-            std::cout << "\nnode address: " << (int) sweeps[k].nodeAddress();        
-            std::cout << "\nnode samplerate: " << sweeps[k].sampleRate().samples();         // prints out charactaristics of node
-            std::cout << "\nnode sampling type: " << sweeps[k].samplingType();  
-            std::cout << "\n";
-
-            sampleRate = sweeps[k].sampleRate().samples();
-
-            node_list[z] = sweeps[k].nodeAddress();
-            node_list_size++;
-        }
-    }
-
-    std::cout << "\n\nenter the node id: ";
-    std::cin >> node_id;
-
-    for (mscl::DataSweep sweep : sweeps)
-        if (sweep.nodeAddress() == node_id)
-        {
-            // sampleRate = sweep.sampleRate().samples();
-            sampleRate = sweep.sampleRate().samples();  // establishes sample rate for opendaq
-            break;
-        }
-}
-
-void WSDA200ChannelImpl::idleAll()
-{
-    std::cout << "\n\npolling for nodes to idle";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-    std::cout << ".";
-    for (int k = 0; k < 0xFFFFFFF; k++);
-
-    mscl::DataSweeps sweeps = basestation->getData(100, 0);
+    sweeps = basestation->getData(100, 0);
     int sweep_size = sweeps.size();
 
-    int node_list[20];
-    int node_list_size = 0;
-    bool found_in_node_list; 
+    int sweeps_we_want = 0;
+    uint64_t sweep_time;
+    bool first = 1; 
 
-    int z, k;
-    for (k = 0; k < sweep_size; k++)  // iterates through sweeps
-    {
+    for (int k = 0; k < sweep_size; k++)
+        if (sweeps.data()[k].nodeAddress() == node_id)       // sets time stamp as first instance of node we are plotting
+        {                                                     
+            sweeps_we_want++;                                // counts amount of relevent data points in our sweep 
 
-        auto temp_id = sweeps[k].nodeAddress(); 
-            
-        found_in_node_list = false;
-        for (z = 0; z < node_list_size; z++)  // checks our node list for unique id
-            if (node_list[z] == (int) sweeps[k].nodeAddress())
-                found_in_node_list = true;
-
-        if (!found_in_node_list)
-        {
-            auto temp = mscl::WirelessNode(sweeps[k].nodeAddress(), *basestation);
-
-
-            mscl::SetToIdleStatus idleStatus = temp.setToIdle();  std::cout << "\n";
-
-            auto sync_info = mscl::SyncNetworkInfo(temp); 
-
-            std::cout << "\nidling node: " << sweeps[k].nodeAddress();
-
-            while (!idleStatus.complete())
+            if (first)
             {
-                std::cout << ".";
-                for (int k = 0; k < 0xFFFFFFF; k++);
-            }
-
-            switch (idleStatus.result())
-            {
-                case mscl::SetToIdleStatus::setToIdleResult_success:
-                    std::cout << "Node is now in idle mode.\n" << std::endl;
-                    break;
-
-                case mscl::SetToIdleStatus::setToIdleResult_canceled:
-                    std::cout << "Set to Idle was canceled!\n" << std::endl;
-                    break;
-
-                case mscl::SetToIdleStatus::setToIdleResult_failed:
-                    std::cout << "Set to Idle has failed!\n" << std::endl;
-                    break;
-            }
-
-
-            node_list[z] = sweeps[k].nodeAddress();
-            node_list_size++;
-            temp.resendStartSyncSampling();
-
-            while (!sync_info.startedSampling())
-            {
-                std::cout << ".";
-                for (int k = 0; k < 0xFFFFFF; k++); 
+                auto temp = sweeps.data()[k]; 
+                sweep_time = temp.timestamp().nanoseconds() / 1000; 
+                first = 0; 
             }
         }
+
+    if (sweeps_we_want > 0)
+    {
+        samplesGenerated += sweeps_we_want;
+        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweeps_we_want, sweep_time);
+
+
+        DataPacketPtr* packets = (DataPacketPtr*) malloc(num_signals * sizeof(DataPacketPtr)); // creates packet config info for each channel sending data
+        for (int k = 0; k < num_signals; k++)
+            packets[k] = DataPacketWithDomain(domainPacket, channel_list[k].getDescriptor(), sweeps_we_want);
+                                                                                                                               
+
+        double** packet_buffer = (double**) malloc(num_signals * sizeof(double*));  // creates packet we are storing out data in for each channel sending data 
+        for (int k = 0; k < num_signals; k++)
+            packet_buffer[k] = static_cast<double*>(packets[k].getRawData());
+
+
+        int x = 0, y = 0, count = 0;
+
+        for (int i = 0; i < sweep_size; i++)
+            if (sweeps[i].nodeAddress() == node_id) 
+            {
+                for (int k = 0; k < num_signals; k++) // loops through each channel sending data on node
+                    packet_buffer[k][count] = sweeps[i].data()[k].as_float();
+
+                x++; count++;
+            }
+            else
+                y++; 
+
+        for (int k = 0; k < num_signals; k++)
+            channel_list[k].sendPacket(std::move(packets[k])); // finally push the data
+        timeSignal.sendPacket(std::move(domainPacket)); // and time signal
+
+        free(packet_buffer);
+        free(packets); 
     }
-} 
+}
+
+void WSDA200ChannelImpl::createSignals()
+{
+    channel_list =  (SignalConfigPtr*)malloc(num_signals * sizeof(SignalConfigPtr));
+
+    for (int k = 0; k < num_signals; k++) // creates signal for each channel on a node streaming data
+        channel_list[k] = createAndAddSignal(fmt::format("node_" + std::to_string(node_id) + "_channel_" + std::to_string(k + 1)));
+    
+    timeSignal = createAndAddSignal(fmt::format("AI{}Time", 0), nullptr);
+
+    for (int k = 0; k < num_signals; k++) // assigns time signal to each signal
+        channel_list[k].setDomainSignal(timeSignal); 
+
+    //valueSignal = createAndAddSignal(fmt::format("ACCEL AXIS {}", index));
+    //timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
+    //valueSignal.setDomainSignal(timeSignal);
+}
+
+void WSDA200ChannelImpl::buildSignalDescriptors()
+{
+    //const auto valueDescriptor = DataDescriptorBuilder()
+    //                             .setSampleType(SampleType::Float64)
+    //                             .setUnit(Unit("V", -1, "volts", "voltage"))
+    //                             .setValueRange(customRange)
+    //                             .setName("AI " + std::to_string(index + 1));
+
+    std::cout << "\n\nSetting Ranges";
+    delay(0xFFFFFFF, 10);
+    sweeps = basestation->getData(1000, 0);
+    float* mins = (float*) malloc(num_signals * sizeof(float)); 
+    float* maxs = (float*) malloc(num_signals * sizeof(float));  // creating arrays to store max and min value for each channel streaming
+
+    float min = 0, max = 0;
+
+    int x = 0, y = 0; 
+    for (int k = 0; k < num_signals; k++)
+    {
+        for (int z = 0; z < sweeps.size(); z++)
+            if (sweeps[z].nodeAddress() == node_id)
+            {                                              // initializes first instance of data we've selected
+                mins[k] = sweeps[z].data()[k].as_float();  // as max and min values and breaks out
+                maxs[k] = sweeps[z].data()[k].as_float();
+                x++;
+                break;
+            }
+            else
+                y++; 
+    }
+
+    for (int k = 0; k < sweeps.size(); k++)
+    {
+        if (sweeps[k].nodeAddress() == node_id)             // loops through all valid data and set max and min range
+            for (int z = 0; z < num_signals; z++)           // needed to display data in a pretty and readable way
+            {
+                auto temp = sweeps[k].data()[z].as_float();
+
+                if (temp < mins[z])
+                    mins[z] = temp;
+
+                if (temp > maxs[z])
+                    maxs[z] = temp;
+            }
+    }
+
+    x = 0, y = 0;
+    for (int k = 0; k < sweeps.size(); k++)
+        if (sweeps[k].nodeAddress() == node_id)
+            x++;
+        else
+            y++; 
+
+    /* if (clientSideScaling)
+    {
+        const double scale = 20.0 / std::pow(2, 24);
+        constexpr double offset = -10.0;
+        valueDescriptor.setPostScaling(LinearScaling(scale, offset, SampleType::Int32, ScaledSampleType::Float64));
+    }
+
+    if (waveformType == WaveformType::ConstantValue)
+    {
+        valueDescriptor.setRule(ConstantDataRule());
+    }*/
+
+
+    //customRange = objPtr.getPropertyValue("CustomRange");
+    for (int k = 0; k < num_signals; k++)
+    {                                                   // function loops through all channels we've set to stream
+        float delta = maxs[k] - mins[k];                // and sets their y axis via the value descriptor to make the data
+                                                        // pretty and readable. function block needs this data value to be set
+        const auto defaultCustomRange = Range(mins[k] - delta * 0.2, maxs[k] + delta * 0.2);
+            objPtr.addProperty(StructPropertyBuilder("CustomRange_" + std::to_string(k), defaultCustomRange).build());
+            objPtr.getOnPropertyValueWrite("CustomRange_" + std::to_string(k)) +=
+            [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
+
+        const auto valueDescriptor = DataDescriptorBuilder()
+                                  .setSampleType(SampleType::Float64)
+                                  .setUnit(Unit("HBK"))
+                                  .setValueRange(objPtr.getPropertyValue("CustomRange_" + std::to_string(k)))
+                                  .setName("AXIS " + std::to_string(index + 1));
+
+        channel_list[k].setDescriptor(valueDescriptor.build());
+    }
+
+    deltaT = getDeltaT(sampleRate);
+    const auto timeDescriptor = DataDescriptorBuilder()
+                                .setSampleType(SampleType::Int64)
+                                .setUnit(Unit("s", -1, "seconds", "time"))  // sets value descritor for time signal
+                                .setTickResolution(getResolution())         // unsure how needed this one is 
+                                .setRule(LinearDataRule(deltaT, 0))
+                                .setOrigin(getEpoch())
+                                .setName("Time AI " + std::to_string(index + 1));
+
+    timeSignal.setDescriptor(timeDescriptor.build());
+
+    free(mins);
+    free(maxs); 
+}
+
+void WSDA200ChannelImpl::delay(int counter, int times)
+{
+    std::cout << ".";
+    for (int z = 0; z < times; z++)
+    {
+        for (int k = 0; k < counter; k++); 
+        std::cout << ".";
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+std::string WSDA200ChannelImpl::getEpoch()
+{
+    const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
+
+    char buf[48];
+    strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%SZ", gmtime(&epochTime));
+
+    return { buf };
+}
+
+RatioPtr WSDA200ChannelImpl::getResolution()
+{
+    return Ratio(1, 1000000);
+}
+
+void WSDA200ChannelImpl::resetCounter()
+{
+    std::scoped_lock lock(sync);
+    counter = 0;
+}
+
+uint64_t WSDA200ChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
+{
+    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
+    return samplesSinceStart;
+}
 
 void WSDA200ChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
@@ -270,7 +281,8 @@ void WSDA200ChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEvent
 
 void WSDA200ChannelImpl::initProperties()
 {
-    /* const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter", "Constant"), 0);
+    
+    const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter", "Constant"), 0);
     
     objPtr.addProperty(waveformProp);
     objPtr.getOnPropertyValueWrite("Waveform") +=
@@ -311,7 +323,6 @@ void WSDA200ChannelImpl::initProperties()
     objPtr.addProperty(noiseAmplProp);
     objPtr.getOnPropertyValueWrite("NoiseAmplitude") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
-
 
     const auto useGlobalSampleRateProp = BoolProperty("UseGlobalSampleRate", True);
 
@@ -364,14 +375,14 @@ void WSDA200ChannelImpl::initProperties()
     objPtr.asPtr<IPropertyObjectProtected>().setProtectedPropertyValue("TestReadOnly", True);
 
 
-*/
-    const auto defaultCustomRange = Range(0.0 * (10), 2.5 * (10));
+
+    const auto defaultCustomRange = Range(-1, 1);
     objPtr.addProperty(StructPropertyBuilder("CustomRange", defaultCustomRange).build());
     objPtr.getOnPropertyValueWrite("CustomRange") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 
     
-/*
+
     objPtr.addProperty(BoolPropertyBuilder("FixedPacketSize", False).build());
     objPtr.getOnPropertyValueWrite("FixedPacketSize") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { packetSizeChanged(); };
@@ -390,8 +401,7 @@ void WSDA200ChannelImpl::initProperties()
     objPtr.addProperty(constantValueProp);
     objPtr.getOnPropertyValueWrite("ConstantValue") +=
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { waveformChanged(); };
-
-        */
+        
 }
 
 void WSDA200ChannelImpl::packetSizeChangedInternal()
@@ -442,11 +452,11 @@ void WSDA200ChannelImpl::signalTypeChanged()
 void WSDA200ChannelImpl::signalTypeChangedInternal()
 {
     // TODO: Should global sample rate be coerced? We only coerce it on read now.
-    /* if (objPtr.getPropertyValue("UseGlobalSampleRate"))
-        sampleRate = globalSampleRate;
-    else
-        sampleRate = objPtr.getPropertyValue("SampleRate");
-     */   
+    // if (objPtr.getPropertyValue("UseGlobalSampleRate"))
+      //  sampleRate = globalSampleRate;
+    //else
+      //  sampleRate = objPtr.getPropertyValue("SampleRate");
+        
     clientSideScaling = objPtr.getPropertyValue("ClientSideScaling");
 
     customRange = objPtr.getPropertyValue("CustomRange");
@@ -458,136 +468,12 @@ void WSDA200ChannelImpl::signalTypeChangedInternal()
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
 
-void WSDA200ChannelImpl::resetCounter()
-{
-    std::scoped_lock lock(sync);
-    counter = 0;
-}
-
-uint64_t WSDA200ChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
-{
-    const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
-    return samplesSinceStart;
-}
-
-
-void WSDA200ChannelImpl::setSampleRate(int rate)
-{
-    //sampleRate = rate; 
-}
-
-
-void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
-{
-    mscl::DataSweeps sweeps = basestation->getData(100, 0);
-    int sweep_size = sweeps.size();
-
-    int sweeps_we_want = 0;
-    uint64_t sweep_time;
-    bool first = 1; 
-
-    for (int k = 0; k < sweep_size; k++)
-        if (sweeps.data()[k].nodeAddress() == node_id)       // sets time stamp as first instance of node we are plotting
-        {                                                    // counts amount of relevent data points in our sweep  
-            sweeps_we_want++;
-
-            if (first)
-            {
-                auto temp = sweeps.data()[k]; 
-                sweep_time = temp.timestamp().nanoseconds() / 1000; 
-                first = 0; 
-            }
-        }
-
-    if (sweeps_we_want > 0)
-    {
-        //samplesGenerated += sweep_size;
-        samplesGenerated += sweeps_we_want;
-
-        DataPacketPtr x_packet, y_packet, z_packet; 
-        //auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
-        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweeps_we_want, sweep_time);
-
-        x_packet = DataPacketWithDomain(domainPacket, channel_1.getDescriptor(), sweeps_we_want);
-        y_packet = DataPacketWithDomain(domainPacket, channel_2.getDescriptor(), sweeps_we_want);
-        z_packet = DataPacketWithDomain(domainPacket, channel_3.getDescriptor(), sweeps_we_want);
-
-        double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
-        double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
-        double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
-
-        int x = 0, y = 0, count = 0;
-
-        for (int i = 0; i < sweep_size; i++)
-            if (sweeps[i].nodeAddress() == node_id)
-            {
-                x_packet_buffer[count] = sweeps[i].data()[0].as_float() * 10;
-                y_packet_buffer[count] = sweeps[i].data()[1].as_float() * 10;
-                z_packet_buffer[count] = sweeps[i].data()[2].as_float() * 10;
-
-                x++; count++;
-            }
-            else
-                y++; 
-
-        channel_1.sendPacket(std::move(x_packet));
-        channel_2.sendPacket(std::move(y_packet));
-        channel_3.sendPacket(std::move(z_packet));
-        timeSignal.sendPacket(std::move(domainPacket));
-    }
-}
-
 Int WSDA200ChannelImpl::getDeltaT(const double sr) const
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / sr;
     const Int deltaT = static_cast<Int>(std::round(samplePeriod / tickPeriod));
     return deltaT;
-}
-
-void WSDA200ChannelImpl::buildSignalDescriptors()
-{
-    //const auto valueDescriptor = DataDescriptorBuilder()
-    //                             .setSampleType(SampleType::Float64)
-    //                             .setUnit(Unit("V", -1, "volts", "voltage"))
-    //                             .setValueRange(customRange)
-    //                             .setName("AI " + std::to_string(index + 1));
-
-     const auto valueDescriptor = DataDescriptorBuilder()
-                                  .setSampleType(SampleType::Float64)
-                                  .setUnit(Unit("HBK"))
-                                  .setValueRange(customRange)
-                                  .setName("AXIS " + std::to_string(index + 1));
-
-    if (clientSideScaling)
-    {
-        const double scale = 20.0 / std::pow(2, 24);
-        constexpr double offset = -10.0;
-        valueDescriptor.setPostScaling(LinearScaling(scale, offset, SampleType::Int32, ScaledSampleType::Float64));
-    }
-
-    if (waveformType == WaveformType::ConstantValue)
-    {
-        valueDescriptor.setRule(ConstantDataRule());
-    }
-
-
-    channel_1.setDescriptor(valueDescriptor.build());
-    channel_2.setDescriptor(valueDescriptor.build());
-    channel_3.setDescriptor(valueDescriptor.build());
-    
-
-    deltaT = getDeltaT(sampleRate);
-
-    const auto timeDescriptor = DataDescriptorBuilder()
-                                .setSampleType(SampleType::Int64)
-                                .setUnit(Unit("s", -1, "seconds", "time"))
-                                .setTickResolution(getResolution())
-                                .setRule(LinearDataRule(deltaT, 0))
-                                .setOrigin(getEpoch())
-                                .setName("Time AI " + std::to_string(index + 1));
-
-    timeSignal.setDescriptor(timeDescriptor.build());
 }
 
 double WSDA200ChannelImpl::coerceSampleRate(const double wantedSampleRate) const
@@ -612,24 +498,6 @@ double WSDA200ChannelImpl::coerceSampleRate(const double wantedSampleRate) const
     return roundedSampleRate;
 }
 
-void WSDA200ChannelImpl::createSignals()
-{
-    channel_1 = createAndAddSignal(fmt::format("node_" + std::to_string(node_id) + "_channel_1")); 
-    channel_2 = createAndAddSignal(fmt::format("node_" + std::to_string(node_id) + "_channel_2")); 
-    channel_3 = createAndAddSignal(fmt::format("node_" + std::to_string(node_id) + "_channel_3")); 
-
-    timeSignal = createAndAddSignal(fmt::format("AI{}Time", 0), nullptr);
-
-    channel_1.setDomainSignal(timeSignal);
-    channel_2.setDomainSignal(timeSignal);
-    channel_3.setDomainSignal(timeSignal);
-
-
-    //valueSignal = createAndAddSignal(fmt::format("ACCEL AXIS {}", index));
-    //timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
-    //valueSignal.setDomainSignal(timeSignal);
-}
-
 void WSDA200ChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
     std::scoped_lock lock(sync);
@@ -638,21 +506,6 @@ void WSDA200ChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
     signalTypeChangedInternal();
     buildSignalDescriptors();
     updateSamplesGenerated();
-}
-
-std::string WSDA200ChannelImpl::getEpoch()
-{
-    const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
-
-    char buf[48];
-    strftime(buf, sizeof buf, "%Y-%m-%dT%H:%M:%SZ", gmtime(&epochTime));
-
-    return { buf };
-}
-
-RatioPtr WSDA200ChannelImpl::getResolution()
-{
-    return Ratio(1, 1000000);
 }
 
 void WSDA200ChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
@@ -665,7 +518,5 @@ void WSDA200ChannelImpl::endApplyProperties(const UpdatingActions& propsAndValue
         needsSignalTypeChanged = false;
     }
 }
-
-
 
 END_NAMESPACE_WSDA_200_DEVICE_MODULE
