@@ -52,9 +52,9 @@ WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const Componen
     createSignals();
     buildSignalDescriptors();
 }
-
+/*
 void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
-{
+{ 
     sweeps = basestation->getData(100, 0);
     int sweep_size = sweeps.size();
 
@@ -63,7 +63,7 @@ void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
     bool first = 1; 
 
     for (int k = 0; k < sweep_size; k++)
-        if (sweeps.data()[k].nodeAddress() == node_id)       // sets time stamp as first instance of node we are plotting
+        if ((int)sweeps.data()[k].nodeAddress() == node_id)       // sets time stamp as first instance of node we are plotting
         {                                                     
             sweeps_we_want++;                                // counts amount of relevent data points in our sweep 
 
@@ -76,17 +76,17 @@ void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
         }
 
     if (sweeps_we_want > 0)
-    {
+    { 
         samplesGenerated += sweeps_we_want;
         auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweeps_we_want, sweep_time);
 
 
-        DataPacketPtr* packets = (DataPacketPtr*) malloc(num_signals * sizeof(DataPacketPtr)); // creates packet config info for each channel sending data
+        DataPacketPtr* packets = new DataPacketPtr[num_signals];  // creates packet config info for each channel sending data
         for (int k = 0; k < num_signals; k++)
             packets[k] = DataPacketWithDomain(domainPacket, channel_list[k].getDescriptor(), sweeps_we_want);
                                                                                                                                
 
-        double** packet_buffer = (double**) malloc(num_signals * sizeof(double*));  // creates packet we are storing out data in for each channel sending data 
+        double** packet_buffer = new double*[num_signals];  // creates packet we are storing out data in for each channel sending data 
         for (int k = 0; k < num_signals; k++)
             packet_buffer[k] = static_cast<double*>(packets[k].getRawData());
 
@@ -94,7 +94,7 @@ void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
         int x = 0, y = 0, count = 0;
 
         for (int i = 0; i < sweep_size; i++)
-            if (sweeps[i].nodeAddress() == node_id) 
+            if ((int)sweeps[i].nodeAddress() == node_id) 
             {
                 for (int k = 0; k < num_signals; k++) // loops through each channel sending data on node
                     packet_buffer[k][count] = sweeps[i].data()[k].as_float();
@@ -108,10 +108,58 @@ void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
             channel_list[k].sendPacket(std::move(packets[k])); // finally push the data
         timeSignal.sendPacket(std::move(domainPacket)); // and time signal
 
-        free(packet_buffer);
-        free(packets); 
+        delete[] packets;
+        delete[] packet_buffer; 
     }
-}
+}*/
+
+void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
+{
+    mscl::DataSweeps sweeps = basestation->getData(20, 0);
+    int sweep_size = sweeps.size();
+
+    if (sweep_size > 0)
+    {
+        uint64_t sweep_time = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
+        samplesGenerated += sweep_size;
+
+        DataPacketPtr x_packet, y_packet, z_packet; 
+        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
+
+        DataPacketPtr* packets = new DataPacketPtr[10]; 
+
+        x_packet = DataPacketWithDomain(domainPacket, channel_list[0].getDescriptor(), sweep_size);
+        y_packet = DataPacketWithDomain(domainPacket, channel_list[1].getDescriptor(), sweep_size);
+        z_packet = DataPacketWithDomain(domainPacket, channel_list[2].getDescriptor(), sweep_size);
+
+        double** packet_buffers = new double*[3];
+
+        double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
+        double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
+        double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
+
+        for (int i = 0; i < sweep_size; i++)
+        {
+            if ((int) sweeps[i].nodeAddress() == node_id)
+            {
+                x_packet_buffer[i] = sweeps[i].data()[0].as_float();
+                y_packet_buffer[i] = sweeps[i].data()[1].as_float();
+                z_packet_buffer[i] = sweeps[i].data()[2].as_float();
+            }
+            else
+                break;
+        }
+
+        channel_list[0].sendPacket(std::move(x_packet));
+        channel_list[1].sendPacket(std::move(y_packet));
+        channel_list[2].sendPacket(std::move(z_packet));
+        timeSignal.sendPacket(std::move(domainPacket));
+
+        delete[] packets;
+        delete[] packet_buffers;
+    }
+ }
+
 
 void WSDA200ChannelImpl::createSignals()
 {
@@ -138,7 +186,7 @@ void WSDA200ChannelImpl::buildSignalDescriptors()
     //                             .setValueRange(customRange)
     //                             .setName("AI " + std::to_string(index + 1));
 
-    std::cout << "\n\nSetting Ranges";
+    /* std::cout << "\n\nSetting Ranges";
     delay(0xFFFFFFF, 10);
     sweeps = basestation->getData(1000, 0);
     float* mins = (float*) malloc(num_signals * sizeof(float)); 
@@ -181,7 +229,7 @@ void WSDA200ChannelImpl::buildSignalDescriptors()
         if (sweeps[k].nodeAddress() == node_id)
             x++;
         else
-            y++; 
+            y++; */                 // un comment block for auto scale
 
     /* if (clientSideScaling)
     {
@@ -199,16 +247,18 @@ void WSDA200ChannelImpl::buildSignalDescriptors()
     //customRange = objPtr.getPropertyValue("CustomRange");
     for (int k = 0; k < num_signals; k++)
     {                                                   // function loops through all channels we've set to stream
-        float delta = maxs[k] - mins[k];                // and sets their y axis via the value descriptor to make the data
+        //float delta = maxs[k] - mins[k];   uncomment for auto scale  // and sets their y axis via the value descriptor to make the data
                                                         // pretty and readable. function block needs this data value to be set
-        const auto defaultCustomRange = Range(mins[k] - delta * 0.2, maxs[k] + delta * 0.2);
+        //const auto defaultCustomRange = Range(mins[k] - delta * 0.2, maxs[k] + delta * 0.2); this line will auto scale 
+        const auto defaultCustomRange = Range(-10, 10);
             objPtr.addProperty(StructPropertyBuilder("CustomRange_" + std::to_string(k), defaultCustomRange).build());
             objPtr.getOnPropertyValueWrite("CustomRange_" + std::to_string(k)) +=
             [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { signalTypeChangedIfNotUpdating(args); };
 
         const auto valueDescriptor = DataDescriptorBuilder()
                                   .setSampleType(SampleType::Float64)
-                                  .setUnit(Unit("HBK"))
+                                  //.setUnit(Unit("HBK"))
+                                  .setUnit(Unit("g"))
                                   .setValueRange(objPtr.getPropertyValue("CustomRange_" + std::to_string(k)))
                                   .setName("AXIS " + std::to_string(index + 1));
 
@@ -226,8 +276,8 @@ void WSDA200ChannelImpl::buildSignalDescriptors()
 
     timeSignal.setDescriptor(timeDescriptor.build());
 
-    free(mins);
-    free(maxs); 
+    //free(mins); autoscale
+    //free(maxs); autoscale
 }
 
 void WSDA200ChannelImpl::delay(int counter, int times)

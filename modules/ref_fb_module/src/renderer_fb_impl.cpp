@@ -688,8 +688,10 @@ void RendererFbImpl::getWidthAndHeight(unsigned int& width, unsigned int& height
             height = 768;
             break;
         case 3:
-            width = 1280 * 2;
-            height = 720 * 2; 
+            width = 1280;
+            //width = 1280 * 2;
+            height = 720; 
+            //height = 720 * 2; 
             break;
     }
 }

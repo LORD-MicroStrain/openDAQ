@@ -113,7 +113,7 @@ CircularBuffer<int> y_buffer(256);
 CircularBuffer<int> z_buffer(256);
 
 
-void fetch_MSCL_data()
+/* void fetch_MSCL_data()
 {
     mscl::DataSweeps sweeps = basestation.getData(1000, 3);
 
@@ -132,9 +132,6 @@ void fetch_MSCL_data()
             x_buffer.add(dataPoint.as_float());
 
 
-
-
-
             x_buffer.printBuffer();
             std::cout << "-------" << std::endl; 
             x_buffer.printReadOrder(); 
@@ -142,7 +139,7 @@ void fetch_MSCL_data()
 
     }
     cou++; 
-}
+}*/
 
 int main(int /*argc*/, const char* /*argv*/[])
 {
@@ -216,7 +213,8 @@ int main(int /*argc*/, const char* /*argv*/[])
     //node.startNonSyncSampling();
 
     while (1)
-        fetch_MSCL_data(); 
+        ;
+        //fetch_MSCL_data(); 
 
        return 0;
 }

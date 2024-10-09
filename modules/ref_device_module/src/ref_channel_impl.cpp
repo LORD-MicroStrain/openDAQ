@@ -527,7 +527,7 @@ void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
         
         for (int i = 0; i < sweep_size; i++)
         {
-            if (sweeps[i].nodeAddress() == node_id)
+            if ((int)sweeps[i].nodeAddress() == node_id)
             {
                 x_packet_buffer[i] = sweeps[i].data()[0].as_float();
                 y_packet_buffer[i] = sweeps[i].data()[1].as_float();

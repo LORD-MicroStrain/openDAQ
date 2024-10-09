@@ -52,13 +52,19 @@ WSDA200DeviceImpl::WSDA200DeviceImpl(size_t id, const PropertyObjectPtr& config,
 
 void WSDA200DeviceImpl::initMSCL()
 {
-    int option = 0;
-    bool choice_done = false; 
+    bool choice_done = false;
+    int option;
 
     while (!choice_done)
     {
-        std::cout << "\n\n1: WSDA-200 \n2: WSDA-2000\nENTER OPTION: ";
+        std::cout << "\n1: WSDA-200 \n2: WSDA-2000\nENTER OPTION: ";
         std::cin >> option;
+
+        if (std::cin.fail())
+        {
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        }
 
         if (option == 1)                                // WSDA-200 
         {
@@ -71,7 +77,7 @@ void WSDA200DeviceImpl::initMSCL()
         }
         else if (option == 2)                           // WSDA-2000
         {
-            char *tcpaddress, *ipaddress; 
+            //char *tcpaddress, *ipaddress; 
             std::cout << "\nEnter your tcp address: \n";
             //std::cin >> tcpaddress; 
             std::cout << "\nEnter your ip address: "; 
@@ -86,7 +92,7 @@ void WSDA200DeviceImpl::initMSCL()
         {
             for (int k = 0; k < 0xFFFFFFF; k++); 
             std::cout << "\nretry\n";
-            for (int k = 0; k < 0xFFFFFFF; k++); 
+            for (int k = 0; k < 0xFFFFFFF; k++);
         }
     }
 
@@ -120,7 +126,6 @@ void WSDA200DeviceImpl::nodeSearch()
             std::cout << "\nnode address: " << (int) sweeps[k].nodeAddress();        
             std::cout << "\nnode samplerate: " << sweeps[k].sampleRate().samples();         // prints out charactaristics of node
             std::cout << "\nnode sampling type: " << sweeps[k].samplingType();  
-            std::cout << "\n";
 
             channel_sample_rate = sweeps[k].sampleRate().samples();
 
@@ -132,16 +137,23 @@ void WSDA200DeviceImpl::nodeSearch()
 
 void WSDA200DeviceImpl::nodePollAndSelection()
 {
-    std::cout << "\n\npolling for nodes sampling.";
+    std::cout << "\npolling for nodes sampling.";
     delay(0xFFFFFFF, 10); // gives us time to collect ample samples 
 
-    nodeSearch();  
+    nodeSearch();
+
+    if (sweeps.size() == 0)
+    {
+        std::cout << "\n Retrying.";
+        delay(0xFFFFFFF, 10);
+        nodeSearch();
+    }
 
     std::cout << "\n\nenter the node id: ";
     std::cin >> node_id;
 
     for (mscl::DataSweep sweep : sweeps)
-        if (sweep.nodeAddress() == node_id)
+        if ((int)sweep.nodeAddress() == node_id)
         {
             // sampleRate = sweep.sampleRate().samples();
             channel_sample_rate = sweep.sampleRate().samples();  // establishes sample rate for opendaq
@@ -165,9 +177,6 @@ void WSDA200DeviceImpl::idleAll()
     int z, k;
     for (k = 0; k < sweep_size; k++)  // iterates through sweeps
     {
-
-        auto temp_id = sweeps[k].nodeAddress(); 
-            
         found_in_node_list = false;
         for (z = 0; z < node_list_size; z++)  // checks our node list for unique id
             if (node_list[z] == (int) sweeps[k].nodeAddress())
@@ -176,7 +185,6 @@ void WSDA200DeviceImpl::idleAll()
         if (!found_in_node_list)
         {
             auto temp = mscl::WirelessNode(sweeps[k].nodeAddress(), *basestation);
-
 
             mscl::SetToIdleStatus idleStatus = temp.setToIdle();  std::cout << "\n";
 
@@ -187,7 +195,7 @@ void WSDA200DeviceImpl::idleAll()
             while (!idleStatus.complete())
             {
                 std::cout << ".";
-                for (int k = 0; k < 0xFFFFFFF; k++);
+                for (k = 0; k < 0xFFFFFFF; k++);
             }
 
             switch (idleStatus.result())
@@ -205,7 +213,6 @@ void WSDA200DeviceImpl::idleAll()
                     break;
             }
 
-
             node_list[z] = sweeps[k].nodeAddress();
             node_list_size++;
             temp.resendStartSyncSampling();
@@ -213,7 +220,7 @@ void WSDA200DeviceImpl::idleAll()
             while (!sync_info.startedSampling())
             {
                 std::cout << ".";
-                for (int k = 0; k < 0xFFFFFF; k++); 
+                for (k = 0; k < 0xFFFFFF; k++); 
             }
         }
     }
@@ -253,6 +260,16 @@ void WSDA200DeviceImpl::updateNumberOfChannels()
         //auto localId = fmt::format("WSDA200Ch{}", i);
         auto ch = createAndAddChannel<WSDA200ChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
+    }
+}
+
+void WSDA200DeviceImpl::delay(int counter, int times)
+{
+    std::cout << ".";
+    for (int z = 0; z < times; z++)
+    {
+        for (int k = 0; k < counter; k++); 
+        std::cout << ".";
     }
 }
 
@@ -482,16 +499,6 @@ void WSDA200DeviceImpl::updateAcqLoopTime()
 
     std::scoped_lock lock(sync);
     this->acqLoopTime = static_cast<size_t>(loopTime);
-}
-
-void WSDA200DeviceImpl::delay(int counter, int times)
-{
-    std::cout << ".";
-    for (int z = 0; z < times; z++)
-    {
-        for (int k = 0; k < counter; k++); 
-        std::cout << ".";
-    }
 }
 
 END_NAMESPACE_WSDA_200_DEVICE_MODULE
