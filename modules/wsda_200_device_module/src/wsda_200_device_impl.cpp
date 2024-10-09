@@ -57,14 +57,16 @@ void WSDA200DeviceImpl::initMSCL()
 
     while (!choice_done)
     {
-        std::cout << "\n1: WSDA-200 \n2: WSDA-2000\nENTER OPTION: ";
+        /* std::cout << "\n1: WSDA-200 \n2: WSDA-2000\nENTER OPTION: ";
         std::cin >> option;
 
         if (std::cin.fail())
         {
             std::cin.clear();
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
+        }*/
+
+        option = 1; 
 
         if (option == 1)                                // WSDA-200 
         {
