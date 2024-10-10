@@ -83,13 +83,16 @@ private:
 
     mscl::Connection connection; 
     mscl::BaseStation* basestation;
-    mscl::DataSweeps sweeps; 
+    mscl::DataSweeps sweeps;
+
     SignalConfigPtr valueSignal;
     SignalConfigPtr timeSignal;
     SignalConfigPtr channel_1;
     SignalConfigPtr channel_2;
     SignalConfigPtr channel_3;
-    SignalConfigPtr* channel_list; 
+    SignalConfigPtr* channel_list;
+
+    double** packet_buffers; 
 
     //////////////////////////////////////////////////////
     WaveformType waveformType;
