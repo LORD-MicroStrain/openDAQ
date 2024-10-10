@@ -1,3 +1,47 @@
+## MicroStrain Wireless Module
+The wireless module is currently called wsda_200_device_module and is located here: openDAQ\modules\wsda_200_device_module. 
+
+Example projects device_server and function_block_example have been modified to demonstrate the wsda_200_device_module. The renderer in the ref_fb_module has also been modified to accomodate timestamp jitter without drawing gaps in the data. Use of the wsda_200_device_module with out the modified renderer in the ref_fb_module will likely show gaps in the data. These gaps do not represent dropped packets.
+
+A wireless node and a base station are currently required to run the module. The node must be configured and set sampling through SensorConnect. Please reach out to jeffrey_tonn@hbkworld.com or peter_sigward@hbkworld.com for instructions.
+
+## Boost install instructions for MSCL (required only for Windows)
+
+JEFF’S NOTE: These instructions are to address an issue that is only present on windows builds. Linux builds work fine. The issue is that MSCL requires an old version of boost. These instructions detail how to install boost for MSCL on a windows machine. 
+
+There are two solutions so that manual installation of boost will not be required in the future:
+
+1) update MSCL so that it uses the current version of boost
+
+2) figure out how to link to an earlier version of boost in the windows build (as currently occurs on Linux machines)
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+Setup your LIB_PATH which will contain some MSCL dependencies
+
+Create the directory where you want your libraries. I suggest using C:\libs and will use that for the rest of the instructions
+
+Set the LIB_PATH environment variable to C:\libs I suggest setting this in the system environment variables
+
+Install boost into your LIB_PATH
+
+Create the directory C:\libs\boost
+
+Download the 64 bit and 32 bit installers for boost
+
+Install both of them to C:\libs\boost\boost_1_68_0
+
+Install OpenSSL into your LIB_PATH
+
+Create the directory C:\libs\openssl
+
+Extract the contents of this file into the directory so that the files are directly in the openssl directory. For example, C:\libs\openssl\README.txt should exist, not C:\libs\openssl\openssl-1.1.0f-vs2015\README.txt
+
+Clone the repo: git clone https://github.com/LORD-MicroStrain/openDAQ.git
+
+Then follow the build instructions documented in the openDAQ README
+
+
 <h3 align="center">
     <a href="https://opendaq.com" target="blank_">
         <img height="100" alt="openDAQ" src="media/openDAQ-logo-orange-blue-rgb.svg" />
@@ -7,7 +51,6 @@
 </h3>
 
 ---
-
 openDAQ is a software development kit that allows for easy integration of data acquisition devices into its ecosystem.
 It provides a simple generic API that allows users to connect to Data Acquisition (DAQ) devices that are compliant with
 openDAQ and any of its supported open standards. With the SDK, users can configure properties of devices and read their
