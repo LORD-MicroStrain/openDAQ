@@ -79,7 +79,7 @@ opendaq_dependency(
     NAME                mscl
     REQUIRED_VERSION    v65.0.0
     GIT_REPOSITORY      https://github.com/LORD-MicroStrain/MSCL.git
-    GIT_REF             feature/public_includes_and_libraries
+    GIT_REF             master
     EXPECT_TARGET       ${MSCL_EXPECT_TARGET}
 )
 
