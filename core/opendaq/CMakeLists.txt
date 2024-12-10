@@ -5,7 +5,9 @@ include(DaqComponents)
 set(RTGEN_LIBRARY_NAME ${SDK_NAME})
 project(${SDK_NAME} VERSION ${OPENDAQ_CORE_VERSION} LANGUAGES C CXX)
 
-set(DAQ_COMPONENTS 
+set(DAQ_COMPONENTS
+    basestation
+    node
     logger
     scheduler
     context
