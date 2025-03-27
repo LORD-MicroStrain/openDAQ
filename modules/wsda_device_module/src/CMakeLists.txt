@@ -1,34 +1,34 @@
-set(LIB_NAME wsda_200_device_module)
+set(LIB_NAME wsda_device_module)
 set(MODULE_HEADERS_DIR ../include/${TARGET_FOLDER_NAME})
 
 set(SRC_Include common.h
                 module_dll.h
-                wsda_200_device_module_impl.h
-                wsda_200_device_impl.h
-                wsda_200_channel_impl.h
-				wsda_200_can_channel_impl.h
+                wsda_device_module_impl.h
+                wsda_device_impl.h
+                wsda_channel_impl.h
+				wsda_can_channel_impl.h
 )
 
 set(SRC_Srcs module_dll.cpp
-             wsda_200_device_module_impl.cpp
-             wsda_200_device_impl.cpp
-             wsda_200_channel_impl.cpp
-			 wsda_200_can_channel_impl.cpp
+             wsda_device_module_impl.cpp
+             wsda_device_impl.cpp
+             wsda_channel_impl.cpp
+			 wsda_can_channel_impl.cpp
 )
 
 prepend_include(${TARGET_FOLDER_NAME} SRC_Include)
 
 source_group("module" FILES ${MODULE_HEADERS_DIR}/module_dll.h
                             ${MODULE_HEADERS_DIR}/common.h
-                            ${MODULE_HEADERS_DIR}/wsda_200_device_module_impl.h
-                            ${MODULE_HEADERS_DIR}/wsda_200_device_impl.h
-                            ${MODULE_HEADERS_DIR}/wsda_200_channel_impl.h
-                            ${MODULE_HEADERS_DIR}/wsda_200_can_channel_impl.h
+                            ${MODULE_HEADERS_DIR}/wsda_device_module_impl.h
+                            ${MODULE_HEADERS_DIR}/wsda_device_impl.h
+                            ${MODULE_HEADERS_DIR}/wsda_channel_impl.h
+                            ${MODULE_HEADERS_DIR}/wsda_can_channel_impl.h
                             module_dll.cpp
-                            wsda_200_device_module_impl.cpp
-                            wsda_200_device_impl.cpp
-                            wsda_200_channel_impl.cpp
-							wsda_200_can_channel_impl.cpp
+                            wsda_device_module_impl.cpp
+                            wsda_device_impl.cpp
+                            wsda_channel_impl.cpp
+							wsda_can_channel_impl.cpp
 )
 
 

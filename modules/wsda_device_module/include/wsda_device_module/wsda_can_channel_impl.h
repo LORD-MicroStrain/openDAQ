@@ -15,16 +15,16 @@
  */
 
 #pragma once
-#include <wsda_200_device_module/common.h>
-#include <wsda_200_device_module/wsda_200_channel_impl.h>
+#include <wsda_device_module/common.h>
+#include <wsda_device_module/wsda_channel_impl.h>
 #include <opendaq/channel_impl.h>
 #include <opendaq/signal_config_ptr.h>
 #include <optional>
 #include <random>
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-struct WSDA200CANChannelInit
+struct WSDACANChannelInit
 {
     std::chrono::microseconds startTime;
     std::chrono::microseconds microSecondsFromEpochToStartTime;
@@ -41,13 +41,13 @@ struct CANData
 
 static_assert(sizeof(CANData) == 69);
 
-class WSDA200CANChannelImpl final : public ChannelImpl<IWSDA200Channel>
+class WSDACANChannelImpl final : public ChannelImpl<IWSDAChannel>
 {
 public:
-    explicit WSDA200CANChannelImpl(const ContextPtr& context,
+    explicit WSDACANChannelImpl(const ContextPtr& context,
                                const ComponentPtr& parent,
                                const StringPtr& localId,
-                               const WSDA200CANChannelInit& init);
+                               const WSDACANChannelInit& init);
 
     // IMSCLChannel
     void collectSamples(std::chrono::microseconds curTime) override;
@@ -78,4 +78,4 @@ private:
     void buildSignalDescriptors();
 };
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE

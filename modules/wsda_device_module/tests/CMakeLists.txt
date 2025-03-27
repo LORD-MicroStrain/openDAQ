@@ -1,7 +1,7 @@
-set(MODULE_NAME wsda_200_device_module)
+set(MODULE_NAME wsda_device_module)
 set(TEST_APP test_${MODULE_NAME})
 
-set(TEST_SOURCES test_wsda_200_device_module.cpp
+set(TEST_SOURCES test_wsda_device_module.cpp
                  test_app.cpp
 )
 

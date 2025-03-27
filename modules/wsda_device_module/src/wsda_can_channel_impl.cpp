@@ -1,4 +1,4 @@
-#include <wsda_200_device_module/wsda_200_can_channel_impl.h>
+#include <wsda_device_module/wsda_can_channel_impl.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/procedure_factory.h>
 #include <opendaq/signal_factory.h>
@@ -17,13 +17,13 @@
 
 #define PI 3.141592653589793
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-WSDA200CANChannelImpl::WSDA200CANChannelImpl(const ContextPtr& context,
+WSDACANChannelImpl::WSDACANChannelImpl(const ContextPtr& context,
                                      const ComponentPtr& parent,
                                      const StringPtr& localId,
-                                     const WSDA200CANChannelInit& init)
-    : ChannelImpl(FunctionBlockType("WSDA200CANChannel",  "CAN", ""), context, parent, localId)
+                                     const WSDACANChannelInit& init)
+    : ChannelImpl(FunctionBlockType("WSDACANChannel",  "CAN", ""), context, parent, localId)
     , startTime(init.startTime)
     , microSecondsFromEpochToStartTime(init.microSecondsFromEpochToStartTime)
     , lastCollectTime(0)
@@ -35,7 +35,7 @@ WSDA200CANChannelImpl::WSDA200CANChannelImpl(const ContextPtr& context,
     buildSignalDescriptors();
 }
 
-void WSDA200CANChannelImpl::initProperties()
+void WSDACANChannelImpl::initProperties()
 {
     const auto upperLimitProp = IntPropertyBuilder("UpperLimit", 1000).setMaxValue(10000000).setMinValue(1).build();
     objPtr.addProperty(upperLimitProp);
@@ -48,7 +48,7 @@ void WSDA200CANChannelImpl::initProperties()
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { propChanged(); };
 }
 
-void WSDA200CANChannelImpl::propChangedInternal()
+void WSDACANChannelImpl::propChangedInternal()
 {
     lowerLimit = objPtr.getPropertyValue("LowerLimit");
     upperLimit = objPtr.getPropertyValue("UpperLimit");
@@ -56,13 +56,13 @@ void WSDA200CANChannelImpl::propChangedInternal()
     counter2 = 0;
 }
 
-void WSDA200CANChannelImpl::propChanged()
+void WSDACANChannelImpl::propChanged()
 {
     std::scoped_lock lock(sync);
     propChangedInternal();
 }
 
-void WSDA200CANChannelImpl::collectSamples(std::chrono::microseconds curTime)
+void WSDACANChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
     std::scoped_lock lock(sync);
     const auto duration = static_cast<int64_t>(curTime.count() - lastCollectTime.count());
@@ -76,11 +76,11 @@ void WSDA200CANChannelImpl::collectSamples(std::chrono::microseconds curTime)
     lastCollectTime = curTime;
 }
 
-void WSDA200CANChannelImpl::globalSampleRateChanged(double /* globalSampleRate */)
+void WSDACANChannelImpl::globalSampleRateChanged(double /* globalSampleRate */)
 {
 }
 
-void WSDA200CANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size_t newSamples)
+void WSDACANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, size_t newSamples)
 {
     const auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     const auto dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
@@ -115,7 +115,7 @@ void WSDA200CANChannelImpl::generateSamples(int64_t curTime, uint64_t duration, 
     timeSignal.sendPacket(domainPacket);
 }
 
-void WSDA200CANChannelImpl::buildSignalDescriptors()
+void WSDACANChannelImpl::buildSignalDescriptors()
 {
     const auto arbIdDescriptor = DataDescriptorBuilder().setName("ArbId").setSampleType(SampleType::Int32).build();
 
@@ -150,13 +150,13 @@ void WSDA200CANChannelImpl::buildSignalDescriptors()
     valueSignal.setDomainSignal(timeSignal);
 }
 
-void WSDA200CANChannelImpl::createSignals()
+void WSDACANChannelImpl::createSignals()
 {
     valueSignal = createAndAddSignal("CAN");
     timeSignal = createAndAddSignal("CanTime", nullptr, false);
 }
 
-std::string WSDA200CANChannelImpl::getEpoch()
+std::string WSDACANChannelImpl::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -166,9 +166,9 @@ std::string WSDA200CANChannelImpl::getEpoch()
     return { buf };
 }
 
-RatioPtr WSDA200CANChannelImpl::getResolution()
+RatioPtr WSDACANChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
 }
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE

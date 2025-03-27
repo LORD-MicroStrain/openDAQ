@@ -15,15 +15,15 @@
  */
 
 #pragma once
-#include <wsda_200_device_module/common.h>
+#include <wsda_device_module/common.h>
 #include <opendaq/module_impl.h>
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-class WSDA200DeviceModule final : public Module
+class WSDADeviceModule final : public Module
 {
 public:
-    explicit WSDA200DeviceModule(ContextPtr context);
+    explicit WSDADeviceModule(ContextPtr context);
     ListPtr<IDeviceInfo> onGetAvailableDevices() override;
     DictPtr<IString, IDeviceType> onGetAvailableDeviceTypes() override;
     DevicePtr onCreateDevice(const StringPtr& connectionString, const ComponentPtr& parent, const PropertyObjectPtr& config) override;
@@ -31,7 +31,7 @@ public:
 private:
     std::vector<DeviceInfoPtr> getAvailableDevices();
     VersionInfoPtr CreateDeviceModuleVersionInfo();
-    void readWSDA200DeviceInfo();
+    void readWSDADeviceInfo();
     std::string getBuildInfo();
 
     StringPtr m_name;
@@ -54,4 +54,4 @@ private:
     size_t getIdFromConnectionString(const std::string& connectionString) const;
 };
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE

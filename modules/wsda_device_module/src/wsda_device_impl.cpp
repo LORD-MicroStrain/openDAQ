@@ -1,8 +1,8 @@
-#include <wsda_200_device_module/wsda_200_device_impl.h>
+#include <wsda_device_module/wsda_device_impl.h>
 #include <opendaq/device_info_factory.h>
 #include <coreobjects/unit_factory.h>
-#include <wsda_200_device_module/wsda_200_channel_impl.h>
-#include <wsda_200_device_module/wsda_200_can_channel_impl.h>
+#include <wsda_device_module/wsda_channel_impl.h>
+#include <wsda_device_module/wsda_can_channel_impl.h>
 #include <opendaq/module_manager_ptr.h>
 #include <fmt/format.h>
 #include <opendaq/custom_log.h>
@@ -11,9 +11,9 @@
 #include <utility>
 #include "mscl/mscl.h"
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-WSDA200DeviceImpl::WSDA200DeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
+WSDADeviceImpl::WSDADeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name)
     : GenericDevice<>(ctx, parent, localId, nullptr, name)
     , id(id)
     , microSecondsFromEpochToDeviceStart(0)
@@ -21,7 +21,7 @@ WSDA200DeviceImpl::WSDA200DeviceImpl(size_t id, const PropertyObjectPtr& config,
     , stopAcq(false)
     , logger(ctx.getLogger())
     , loggerComponent( this->logger.assigned()
-                          ? this->logger.getOrAddComponent(WSDA_200_MODULE_NAME)
+                          ? this->logger.getOrAddComponent(WSDA_MODULE_NAME)
                           : throw ArgumentNullException("Logger must not be null"))
 {
     initMSCL(); 
@@ -39,18 +39,18 @@ WSDA200DeviceImpl::WSDA200DeviceImpl(size_t id, const PropertyObjectPtr& config,
             serialNumber = config.getPropertyValue("SerialNumber");
     }
     
-    const auto options = this->context.getModuleOptions(WSDA_200_MODULE_NAME);
+    const auto options = this->context.getModuleOptions(WSDA_MODULE_NAME);
     if (options.assigned())
     {
         if (options.hasKey("SerialNumber"))
             serialNumber = options.get("SerialNumber");
     }
 
-    acqThread = std::thread{ &WSDA200DeviceImpl::acqLoop, this };
+    acqThread = std::thread{ &WSDADeviceImpl::acqLoop, this };
     //acqThread2 = std::thread{ &MSCLDeviceImpl::hello, this };
 }
 
-void WSDA200DeviceImpl::initMSCL()
+void WSDADeviceImpl::initMSCL()
 {
     bool choice_done = false;
     int option;
@@ -102,7 +102,7 @@ void WSDA200DeviceImpl::initMSCL()
     nodePollAndSelection();  
  }
 
-void WSDA200DeviceImpl::nodeSearch()
+void WSDADeviceImpl::nodeSearch()
 {
     sweeps = basestation->getData(1000, 0);
 
@@ -137,7 +137,7 @@ void WSDA200DeviceImpl::nodeSearch()
     }
 }
 
-void WSDA200DeviceImpl::nodePollAndSelection()
+void WSDADeviceImpl::nodePollAndSelection()
 {
     std::cout << "\npolling for nodes sampling.";
     delay(0xFFFFFFF, 10); // gives us time to collect ample samples 
@@ -164,7 +164,7 @@ void WSDA200DeviceImpl::nodePollAndSelection()
         }
 }
 
-void WSDA200DeviceImpl::idleAll()
+void WSDADeviceImpl::idleAll()
 {
     std::cout << "\n\npolling for nodes to idle";
     delay(0xFFFFFF, 5); 
@@ -228,7 +228,7 @@ void WSDA200DeviceImpl::idleAll()
     }
 } 
 
-void WSDA200DeviceImpl::updateNumberOfChannels()
+void WSDADeviceImpl::updateNumberOfChannels()
 {
     std::size_t num = objPtr.getPropertyValue("NumberOfChannels");
     //LOG_I("Properties: NumberOfChannels {}", num); PETER PETER
@@ -248,7 +248,7 @@ void WSDA200DeviceImpl::updateNumberOfChannels()
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     for (auto i = channels.size(); i < num; i++)
     {
-        WSDA200ChannelInit init;
+        WSDAChannelInit init;
         init.basestation = basestation; 
         init.index = i;
         init.globalSampleRate = globalSampleRate;
@@ -259,13 +259,13 @@ void WSDA200DeviceImpl::updateNumberOfChannels()
         init.microSecondsFromEpochToStartTime = microSecondsFromEpochToDeviceStart; 
 
         auto localId = fmt::format("node_id_"+std::to_string(node_id));
-        //auto localId = fmt::format("WSDA200Ch{}", i);
-        auto ch = createAndAddChannel<WSDA200ChannelImpl>(aiFolder, localId, init);
+        //auto localId = fmt::format("WSDACh{}", i);
+        auto ch = createAndAddChannel<WSDAChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
     }
 }
 
-void WSDA200DeviceImpl::delay(int counter, int times)
+void WSDADeviceImpl::delay(int counter, int times)
 {
     std::cout << ".";
     for (int z = 0; z < times; z++)
@@ -279,7 +279,7 @@ void WSDA200DeviceImpl::delay(int counter, int times)
 //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-WSDA200DeviceImpl::~WSDA200DeviceImpl()
+WSDADeviceImpl::~WSDADeviceImpl()
 {
     {
         std::scoped_lock<std::mutex> lock(sync);
@@ -290,74 +290,74 @@ WSDA200DeviceImpl::~WSDA200DeviceImpl()
     acqThread.join();
 }
 
-DeviceInfoPtr WSDA200DeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
+DeviceInfoPtr WSDADeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& serialNumber)
 {
-    auto devInfo = DeviceInfo(fmt::format("daqwsda200://device{}", id));
+    auto devInfo = DeviceInfo(fmt::format("daqwsda://device{}", id));
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("MicroStrain");
-    devInfo.setModel("WSDA200 refrence device");
+    devInfo.setModel("WSDA refrence device");
     devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
 
     return devInfo;
 }
 
-DeviceTypePtr WSDA200DeviceImpl::CreateType()
+DeviceTypePtr WSDADeviceImpl::CreateType()
 {
-    return DeviceType("daqwsda200",
-                      "WSDA200 refrence device",
-                      "WSDA200 refrence device",
-                      "daqwsda200");
+    return DeviceType("daqwsda",
+                      "WSDA refrence device",
+                      "WSDA refrence device",
+                      "daqwsda");
 }
 
-DeviceInfoPtr WSDA200DeviceImpl::onGetInfo()
+DeviceInfoPtr WSDADeviceImpl::onGetInfo()
 {
-    auto deviceInfo = WSDA200DeviceImpl::CreateDeviceInfo(id, serialNumber);
+    auto deviceInfo = WSDADeviceImpl::CreateDeviceInfo(id, serialNumber);
     deviceInfo.freeze();
     return deviceInfo;
 }
 
-uint64_t WSDA200DeviceImpl::onGetTicksSinceOrigin()
+uint64_t WSDADeviceImpl::onGetTicksSinceOrigin()
 {
     auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
     auto ticksSinceEpoch = microSecondsFromEpochToDeviceStart + microSecondsSinceDeviceStart;
     return static_cast<SizeT>(ticksSinceEpoch.count());
 }
 
-bool WSDA200DeviceImpl::allowAddDevicesFromModules()
+bool WSDADeviceImpl::allowAddDevicesFromModules()
 {
     return true;
 }
 
-bool WSDA200DeviceImpl::allowAddFunctionBlocksFromModules()
+bool WSDADeviceImpl::allowAddFunctionBlocksFromModules()
 {
     return true;
 }
 
-std::chrono::microseconds WSDA200DeviceImpl::getMicroSecondsSinceDeviceStart() const
+std::chrono::microseconds WSDADeviceImpl::getMicroSecondsSinceDeviceStart() const
 {
     auto currentTime = std::chrono::steady_clock::now();
     auto microSecondsSinceDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - startTime);
     return microSecondsSinceDeviceStart;
 }
 
-void WSDA200DeviceImpl::initClock()
+void WSDADeviceImpl::initClock()
 {
     startTime = std::chrono::steady_clock::now();
     auto startAbsTime = std::chrono::system_clock::now();
 
     microSecondsFromEpochToDeviceStart = std::chrono::duration_cast<std::chrono::microseconds>(startAbsTime.time_since_epoch());
 
-    this->setDeviceDomain(DeviceDomain(WSDA200ChannelImpl::getResolution(), WSDA200ChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
+    this->setDeviceDomain(DeviceDomain(WSDAChannelImpl::getResolution(), WSDAChannelImpl::getEpoch(), UnitBuilder().setName("second").setSymbol("s").setQuantity("time").build()));
 }
 
-void WSDA200DeviceImpl::initIoFolder()
+void WSDADeviceImpl::initIoFolder()
 {
     aiFolder = this->addIoFolder("AI", ioFolder);
     canFolder = this->addIoFolder("CAN", ioFolder);
 }
 
-void WSDA200DeviceImpl::initSyncComponent()
+void WSDADeviceImpl::initSyncComponent()
 {
     syncComponent = this->addComponent("sync");
 
@@ -366,7 +366,7 @@ void WSDA200DeviceImpl::initSyncComponent()
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { };
 }
 
-void WSDA200DeviceImpl::acqLoop()
+void WSDADeviceImpl::acqLoop()
 {
     using namespace std::chrono_literals;
     using  milli = std::chrono::milliseconds;
@@ -392,20 +392,20 @@ void WSDA200DeviceImpl::acqLoop()
 
             for (auto& ch : channels)
             {
-                auto chPrivate = ch.asPtr<IWSDA200Channel>();
+                auto chPrivate = ch.asPtr<IWSDAChannel>();
                 chPrivate->collectSamples(curTime);
             }
 
             if (canChannel.assigned())
             {
-                auto chPrivate = canChannel.asPtr<IWSDA200Channel>();
+                auto chPrivate = canChannel.asPtr<IWSDAChannel>();
                 chPrivate->collectSamples(curTime);
             }
         }
     }
 }
 
-void WSDA200DeviceImpl::initProperties(const PropertyObjectPtr& config)
+void WSDADeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
     size_t numberOfChannels = 1;
     bool enableCANChannel = false;
@@ -422,7 +422,7 @@ void WSDA200DeviceImpl::initProperties(const PropertyObjectPtr& config)
             enableCANChannel = config.getPropertyValue("EnableCANChannel");
     } 
     
-    const auto options = this->context.getModuleOptions(WSDA_200_MODULE_NAME);
+    const auto options = this->context.getModuleOptions(WSDA_MODULE_NAME);
     if (options.assigned())
     {
         if (options.hasKey("NumberOfChannels"))
@@ -460,7 +460,7 @@ void WSDA200DeviceImpl::initProperties(const PropertyObjectPtr& config)
         [this](PropertyObjectPtr& obj, PropertyValueEventArgsPtr& args) { this->enableCANChannel(); };
 }
 
-void WSDA200DeviceImpl::enableCANChannel()
+void WSDADeviceImpl::enableCANChannel()
 {
     bool enableCANChannel = objPtr.getPropertyValue("EnableCANChannel");
 
@@ -475,12 +475,12 @@ void WSDA200DeviceImpl::enableCANChannel()
     else
     {
         auto microSecondsSinceDeviceStart = getMicroSecondsSinceDeviceStart();
-        WSDA200CANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
-        canChannel = createAndAddChannel<WSDA200CANChannelImpl>(canFolder, "wsda200:canch", init);
+        WSDACANChannelInit init{microSecondsSinceDeviceStart, microSecondsFromEpochToDeviceStart};
+        canChannel = createAndAddChannel<WSDACANChannelImpl>(canFolder, "wsda:canch", init);
     }
 }
 
-void WSDA200DeviceImpl::updateGlobalSampleRate()
+void WSDADeviceImpl::updateGlobalSampleRate()
 {
     auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
     LOG_I("Properties: GlobalSampleRate {}", globalSampleRate);
@@ -489,12 +489,12 @@ void WSDA200DeviceImpl::updateGlobalSampleRate()
 
     for (auto& ch : channels)
     {
-        auto chPriv = ch.asPtr<IWSDA200Channel>();
+        auto chPriv = ch.asPtr<IWSDAChannel>();
         chPriv->globalSampleRateChanged(globalSampleRate);
     }
 }
 
-void WSDA200DeviceImpl::updateAcqLoopTime()
+void WSDADeviceImpl::updateAcqLoopTime()
 {
     Int loopTime = objPtr.getPropertyValue("AcquisitionLoopTime");
     LOG_I("Properties: AcquisitionLoopTime {}", loopTime);
@@ -503,4 +503,4 @@ void WSDA200DeviceImpl::updateAcqLoopTime()
     this->acqLoopTime = static_cast<size_t>(loopTime);
 }
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE
