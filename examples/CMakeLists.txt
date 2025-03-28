@@ -32,7 +32,7 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     target_link_libraries(device_server PRIVATE daq::opendaq)
     add_dependencies(device_server daq::opcua_server_module
                                    daq::ref_device_module
-                                   daq::wsda_200_device_module
+                                   daq::wsda_device_module
     )
     if (OPENDAQ_ENABLE_NATIVE_STREAMING)
         add_dependencies(device_server daq::native_stream_srv_module)
@@ -60,7 +60,7 @@ if (APP_ENABLE_WEBPAGE_EXAMPLES)
     target_link_libraries(function_block_example PRIVATE daq::opendaq)
     add_dependencies(function_block_example daq::ref_fb_module
                                             daq::ref_device_module
-                                            daq::wsda_200_device_module
+                                            daq::wsda_device_module
     )
 
     add_executable(stream_reader_example cpp/stream_reader_example/stream_reader_example.cpp)

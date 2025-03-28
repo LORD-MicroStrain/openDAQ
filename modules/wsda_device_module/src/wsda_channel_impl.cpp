@@ -1,4 +1,4 @@
-#include <wsda_200_device_module/wsda_200_channel_impl.h>
+#include <wsda_device_module/wsda_channel_impl.h>
 #include <coreobjects/eval_value_factory.h>
 #include <coretypes/procedure_factory.h>
 #include <opendaq/signal_factory.h>
@@ -20,10 +20,10 @@
 
 #define PI 3.141592653589793
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDA200ChannelInit& init)
-    : ChannelImpl(FunctionBlockType("WSDA200Channel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
+WSDAChannelImpl::WSDAChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDAChannelInit& init)
+    : ChannelImpl(FunctionBlockType("WSDAChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
     , waveformType(WaveformType::None)
     , freq(0)
     , ampl(0)
@@ -54,7 +54,7 @@ WSDA200ChannelImpl::WSDA200ChannelImpl(const ContextPtr& context, const Componen
 }
 
 DataPacketPtr* packets; 
-void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
+void WSDAChannelImpl::collectSamples(std::chrono::microseconds curTime)
 { 
     sweeps = basestation->getData(100, 0);
     int sweep_size = sweeps.size();
@@ -114,7 +114,7 @@ void WSDA200ChannelImpl::collectSamples(std::chrono::microseconds curTime)
     }
 }
 
-void WSDA200ChannelImpl::createSignals()
+void WSDAChannelImpl::createSignals()
 {
     channel_list = new SignalConfigPtr[num_signals];
 
@@ -131,7 +131,7 @@ void WSDA200ChannelImpl::createSignals()
     //valueSignal.setDomainSignal(timeSignal);
 }
 
-void WSDA200ChannelImpl::buildSignalDescriptors()
+void WSDAChannelImpl::buildSignalDescriptors()
 {
     //const auto valueDescriptor = DataDescriptorBuilder()
     //                             .setSampleType(SampleType::Float64)
@@ -233,7 +233,7 @@ void WSDA200ChannelImpl::buildSignalDescriptors()
     //free(maxs); autoscale
 }
 
-void WSDA200ChannelImpl::delay(int counter, int times)
+void WSDAChannelImpl::delay(int counter, int times)
 {
     std::cout << ".";
     for (int z = 0; z < times; z++)
@@ -247,7 +247,7 @@ void WSDA200ChannelImpl::delay(int counter, int times)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-std::string WSDA200ChannelImpl::getEpoch()
+std::string WSDAChannelImpl::getEpoch()
 {
     const std::time_t epochTime = std::chrono::system_clock::to_time_t(std::chrono::time_point<std::chrono::system_clock>{});
 
@@ -257,24 +257,24 @@ std::string WSDA200ChannelImpl::getEpoch()
     return { buf };
 }
 
-RatioPtr WSDA200ChannelImpl::getResolution()
+RatioPtr WSDAChannelImpl::getResolution()
 {
     return Ratio(1, 1000000);
 }
 
-void WSDA200ChannelImpl::resetCounter()
+void WSDAChannelImpl::resetCounter()
 {
     std::scoped_lock lock(sync);
     counter = 0;
 }
 
-uint64_t WSDA200ChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
+uint64_t WSDAChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) const
 {
     const uint64_t samplesSinceStart = static_cast<uint64_t>(std::trunc(static_cast<double>((time - startTime).count()) / 1000000.0 * sampleRate));
     return samplesSinceStart;
 }
 
-void WSDA200ChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
+void WSDAChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
     if (!args.getIsUpdating())
         signalTypeChanged();
@@ -282,7 +282,7 @@ void WSDA200ChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEvent
         needsSignalTypeChanged = true;
 }
 
-void WSDA200ChannelImpl::initProperties()
+void WSDAChannelImpl::initProperties()
 {
     
     const auto waveformProp = SelectionProperty("Waveform", List<IString>("Sine", "Rect", "None", "Counter", "Constant"), 0);
@@ -407,20 +407,20 @@ void WSDA200ChannelImpl::initProperties()
         
 }
 
-void WSDA200ChannelImpl::packetSizeChangedInternal()
+void WSDAChannelImpl::packetSizeChangedInternal()
 {
     fixedPacketSize = objPtr.getPropertyValue("FixedPacketSize");
     packetSize = objPtr.getPropertyValue("PacketSize");
 }
 
-void WSDA200ChannelImpl::packetSizeChanged()
+void WSDAChannelImpl::packetSizeChanged()
 {
     std::scoped_lock lock(sync);
 
     packetSizeChangedInternal();
 }
 
-void WSDA200ChannelImpl::waveformChangedInternal()
+void WSDAChannelImpl::waveformChangedInternal()
 {
     waveformType = objPtr.getPropertyValue("Waveform");
     freq = objPtr.getPropertyValue("Frequency");
@@ -432,19 +432,19 @@ void WSDA200ChannelImpl::waveformChangedInternal()
           objPtr.getPropertySelectionValue("Waveform").toString(), freq, dc, ampl, noiseAmpl, constantValue);
 }
 
-void WSDA200ChannelImpl::updateSamplesGenerated()
+void WSDAChannelImpl::updateSamplesGenerated()
 {
     if (lastCollectTime.count() > 0)
         samplesGenerated = getSamplesSinceStart(lastCollectTime);
 }
 
-void WSDA200ChannelImpl::waveformChanged()
+void WSDAChannelImpl::waveformChanged()
 {
     std::scoped_lock lock(sync);
     waveformChangedInternal();
 }
 
-void WSDA200ChannelImpl::signalTypeChanged()
+void WSDAChannelImpl::signalTypeChanged()
 {
     std::scoped_lock lock(sync);
     signalTypeChangedInternal();
@@ -452,7 +452,7 @@ void WSDA200ChannelImpl::signalTypeChanged()
     updateSamplesGenerated();
 }
 
-void WSDA200ChannelImpl::signalTypeChangedInternal()
+void WSDAChannelImpl::signalTypeChangedInternal()
 {
     // TODO: Should global sample rate be coerced? We only coerce it on read now.
     // if (objPtr.getPropertyValue("UseGlobalSampleRate"))
@@ -471,7 +471,7 @@ void WSDA200ChannelImpl::signalTypeChangedInternal()
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
 
-Int WSDA200ChannelImpl::getDeltaT(const double sr) const
+Int WSDAChannelImpl::getDeltaT(const double sr) const
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / sr;
@@ -479,7 +479,7 @@ Int WSDA200ChannelImpl::getDeltaT(const double sr) const
     return deltaT;
 }
 
-double WSDA200ChannelImpl::coerceSampleRate(const double wantedSampleRate) const
+double WSDAChannelImpl::coerceSampleRate(const double wantedSampleRate) const
 {
     const double tickPeriod = getResolution();
     const double samplePeriod = 1.0 / wantedSampleRate;
@@ -501,7 +501,7 @@ double WSDA200ChannelImpl::coerceSampleRate(const double wantedSampleRate) const
     return roundedSampleRate;
 }
 
-void WSDA200ChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
+void WSDAChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
 {
     std::scoped_lock lock(sync);
 
@@ -511,9 +511,9 @@ void WSDA200ChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
     updateSamplesGenerated();
 }
 
-void WSDA200ChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
+void WSDAChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, bool parentUpdating)
 {
-    ChannelImpl<IWSDA200Channel>::endApplyProperties(propsAndValues, parentUpdating);
+    ChannelImpl<IWSDAChannel>::endApplyProperties(propsAndValues, parentUpdating);
 
     if (needsSignalTypeChanged)
     {
@@ -522,4 +522,4 @@ void WSDA200ChannelImpl::endApplyProperties(const UpdatingActions& propsAndValue
     }
 }
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE

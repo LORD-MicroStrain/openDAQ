@@ -1,15 +1,15 @@
 #include <coretypes/version_info_factory.h>
 #include <opendaq/custom_log.h>
 
-#include <wsda_200_device_module/wsda_200_device_impl.h>
-#include <wsda_200_device_module/wsda_200_device_module_impl.h>
-#include <wsda_200_device_module/version.h>
+#include <wsda_device_module/wsda_device_impl.h>
+#include <wsda_device_module/wsda_device_module_impl.h>
+#include <wsda_device_module/version.h>
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-VersionInfoPtr WSDA200DeviceModule::CreateDeviceModuleVersionInfo()
+VersionInfoPtr WSDADeviceModule::CreateDeviceModuleVersionInfo()
 {
-    return VersionInfo(WSDA_200_DEVICE_MODULE_MAJOR_VERSION, WSDA_200_DEVICE_MODULE_MINOR_VERSION, WSDA_200_DEVICE_MODULE_PATCH_VERSION);
+    return VersionInfo(WSDA_DEVICE_MODULE_MAJOR_VERSION, WSDA_DEVICE_MODULE_MINOR_VERSION, WSDA_DEVICE_MODULE_PATCH_VERSION);
 }
 
 /* DictPtr<IString, IDeviceType> RefDeviceModule::onGetAvailableDeviceTypes()
@@ -21,7 +21,7 @@ VersionInfoPtr WSDA200DeviceModule::CreateDeviceModuleVersionInfo()
     return result;
 }*/
 
-void WSDA200DeviceModule::readWSDA200DeviceInfo()
+void WSDADeviceModule::readWSDADeviceInfo()
 {
     bool success = false;
 
@@ -51,8 +51,8 @@ void WSDA200DeviceModule::readWSDA200DeviceInfo()
     if (!success)
     {
         LOG_E("Unable to determine WSDA-200 device type, using 3050 as default device");
-        m_name = "WSDA_200";
-        m_localId = "HBK-WSDA_200-0";
+        m_name = "WSDA";
+        m_localId = "HBK-WSDA-0";
         m_model = "3050";
         m_serialNumber = "0";
         m_macAddress = "00:00:00:00:00:00";
@@ -64,7 +64,7 @@ void WSDA200DeviceModule::readWSDA200DeviceInfo()
     }
 }
 
-std::vector<DeviceInfoPtr> WSDA200DeviceModule::getAvailableDevices()
+std::vector<DeviceInfoPtr> WSDADeviceModule::getAvailableDevices()
 {
     auto devInfo = DeviceInfo(fmt::format("{}://{}", m_name, m_model));
     devInfo.setName(m_name);
@@ -79,7 +79,7 @@ std::vector<DeviceInfoPtr> WSDA200DeviceModule::getAvailableDevices()
 }
 
 //*****************************************************************************
-std::string WSDA200DeviceModule::getBuildInfo()
+std::string WSDADeviceModule::getBuildInfo()
 //*****************************************************************************
 // Purpose:  Extracts software build info from sysfs /etc/build
 // Returns:  Software build info
@@ -119,26 +119,26 @@ std::string WSDA200DeviceModule::getBuildInfo()
 
 /////////////////////////////////////////////////////////////////////////////////////////// above is accomidating code ///////////////////////////////////////////////////////////////////////////////////////
  
-WSDA200DeviceModule::WSDA200DeviceModule(ContextPtr context)
-    : Module("WSDA200DeviceModule",
-             daq::VersionInfo(WSDA_200_DEVICE_MODULE_MAJOR_VERSION, WSDA_200_DEVICE_MODULE_MINOR_VERSION, WSDA_200_DEVICE_MODULE_PATCH_VERSION),
+WSDADeviceModule::WSDADeviceModule(ContextPtr context)
+    : Module("WSDADeviceModule",
+             daq::VersionInfo(WSDA_DEVICE_MODULE_MAJOR_VERSION, WSDA_DEVICE_MODULE_MINOR_VERSION, WSDA_DEVICE_MODULE_PATCH_VERSION),
              std::move(context),
-             WSDA_200_MODULE_NAME)
+             WSDA_MODULE_NAME)
     , maxNumberOfDevices(1)
 {
-    auto options = this->context.getModuleOptions(WSDA_200_MODULE_NAME);
+    auto options = this->context.getModuleOptions(WSDA_MODULE_NAME);
     if (options.hasKey("MaxNumberOfDevices"))
         maxNumberOfDevices = options.get("MaxNumberOfDevices");
     devices.resize(maxNumberOfDevices);
 }
 
-ListPtr<IDeviceInfo> WSDA200DeviceModule::onGetAvailableDevices()
+ListPtr<IDeviceInfo> WSDADeviceModule::onGetAvailableDevices()
 {
     StringPtr serialNumber;
 
     auto temp = getAvailableDevices(); 
 
-    const auto options = this->context.getModuleOptions(WSDA_200_MODULE_NAME);
+    const auto options = this->context.getModuleOptions(WSDA_MODULE_NAME);
 
     if (options.assigned())
     {
@@ -150,14 +150,14 @@ ListPtr<IDeviceInfo> WSDA200DeviceModule::onGetAvailableDevices()
 
     if (serialNumber.assigned())
     {
-        auto info = WSDA200DeviceImpl::CreateDeviceInfo(0, serialNumber);
+        auto info = WSDADeviceImpl::CreateDeviceInfo(0, serialNumber);
         availableDevices.pushBack(info);
     }
     else
     {
         for (size_t i = 0; i < 2; i++)
         {
-            auto info = WSDA200DeviceImpl::CreateDeviceInfo(i);
+            auto info = WSDADeviceImpl::CreateDeviceInfo(i);
             availableDevices.pushBack(info);
         }
     }
@@ -165,17 +165,17 @@ ListPtr<IDeviceInfo> WSDA200DeviceModule::onGetAvailableDevices()
     return availableDevices;
 }
 
-DictPtr<IString, IDeviceType> WSDA200DeviceModule::onGetAvailableDeviceTypes()
+DictPtr<IString, IDeviceType> WSDADeviceModule::onGetAvailableDeviceTypes()
 {
     auto result = Dict<IString, IDeviceType>();
 
-    auto deviceType = WSDA200DeviceImpl::CreateType();
+    auto deviceType = WSDADeviceImpl::CreateType();
     result.set(deviceType.getId(), deviceType);
 
     return result;
 }
 
-DevicePtr WSDA200DeviceModule::onCreateDevice(const StringPtr& connectionString,
+DevicePtr WSDADeviceModule::onCreateDevice(const StringPtr& connectionString,
                                           const ComponentPtr& parent,
                                           const PropertyObjectPtr& config)
 {
@@ -195,7 +195,7 @@ DevicePtr WSDA200DeviceModule::onCreateDevice(const StringPtr& connectionString,
         throw AlreadyExistsException();
     }
     
-    const auto options = this->context.getModuleOptions(WSDA_200_MODULE_NAME);
+    const auto options = this->context.getModuleOptions(WSDA_MODULE_NAME);
     StringPtr localId;
     StringPtr name = fmt::format("Device {}", id);
 
@@ -216,24 +216,24 @@ DevicePtr WSDA200DeviceModule::onCreateDevice(const StringPtr& connectionString,
     }
 
     if (!localId.assigned())
-        localId = fmt::format("WSDA200Dev{}", id);
+        localId = fmt::format("WSDADev{}", id);
 
-    auto devicePtr = createWithImplementation<IDevice, WSDA200DeviceImpl>(id, config, context, parent, localId, name);
+    auto devicePtr = createWithImplementation<IDevice, WSDADeviceImpl>(id, config, context, parent, localId, name);
     devices[id] = devicePtr;
     return devicePtr;
 }
 
-size_t WSDA200DeviceModule::getIdFromConnectionString(const std::string& connectionString) const
+size_t WSDADeviceModule::getIdFromConnectionString(const std::string& connectionString) const
 {
-    std::string pwsda200ixWithDeviceStr = "daqwsda200://device";
-    auto found = connectionString.find(pwsda200ixWithDeviceStr);
+    std::string pwsdaixWithDeviceStr = "daqwsda://device";
+    auto found = connectionString.find(pwsdaixWithDeviceStr);
     if (found != 0)
     {
-        LOG_W("Invalid connection string \"{}\", no pwsda200ix", connectionString);
+        LOG_W("Invalid connection string \"{}\", no pwsdaix", connectionString);
         throw InvalidParameterException();
     }
 
-    auto idStr = connectionString.substr(pwsda200ixWithDeviceStr.size(), std::string::npos);
+    auto idStr = connectionString.substr(pwsdaixWithDeviceStr.size(), std::string::npos);
     size_t id;
     try
     {
@@ -248,4 +248,4 @@ size_t WSDA200DeviceModule::getIdFromConnectionString(const std::string& connect
     return id;
 }
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE

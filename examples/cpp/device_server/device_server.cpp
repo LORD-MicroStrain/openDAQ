@@ -15,7 +15,7 @@ int main(int /*argc*/, const char* /*argv*/[])
 
     // Add a reference device as root device
     //instance.setRootDevice("daqref://device0");
-    instance.setRootDevice("daqwsda200://device0");
+    instance.setRootDevice("daqwsda://device0");
 
     // Start streaming and openDAQ OpcUa servers
     // Jeff's Note: this does everything the code below does

@@ -15,7 +15,7 @@
  */
 
 #pragma once
-#include <wsda_200_device_module/common.h>
+#include <wsda_device_module/common.h>
 #include <opendaq/channel_ptr.h>
 #include <opendaq/device_impl.h>
 #include <opendaq/logger_ptr.h>
@@ -24,13 +24,13 @@
 #include <condition_variable>
 #include "mscl/mscl.h"
 
-BEGIN_NAMESPACE_WSDA_200_DEVICE_MODULE
+BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
-class WSDA200DeviceImpl final : public Device
+class WSDADeviceImpl final : public Device
 {
 public:
-    explicit WSDA200DeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
-    ~WSDA200DeviceImpl() override;
+    explicit WSDADeviceImpl(size_t id, const PropertyObjectPtr& config, const ContextPtr& ctx, const ComponentPtr& parent, const StringPtr& localId, const StringPtr& name = nullptr);
+    ~WSDADeviceImpl() override;
 
     static DeviceInfoPtr CreateDeviceInfo(size_t id, const StringPtr& serialNumber = nullptr);
     static DeviceTypePtr CreateType();
@@ -100,4 +100,4 @@ private:
     LoggerComponentPtr loggerComponent;
 };
 
-END_NAMESPACE_WSDA_200_DEVICE_MODULE
+END_NAMESPACE_WSDA_DEVICE_MODULE
