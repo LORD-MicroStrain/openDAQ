@@ -26,12 +26,12 @@ WSDADeviceImpl::WSDADeviceImpl(size_t id, const PropertyObjectPtr& config, const
 {
     initMSCL(); 
     initIoFolder();  // explore this further-- maybe has pritable output
-    //initSyncComponent();
+    initSyncComponent();
     initClock();
     initProperties(config);
     updateNumberOfChannels();
-    //enableCANChannel();
-    //updateAcqLoopTime();
+    enableCANChannel();
+    updateAcqLoopTime();
 
     if (config.assigned())
     {

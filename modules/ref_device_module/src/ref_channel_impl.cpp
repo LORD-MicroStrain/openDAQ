@@ -14,245 +14,16 @@
 #include <coreobjects/property_object_protected_ptr.h>
 #include <iostream>
 #include <chrono>
-#include <vector>
-#include <thread>
 #include <ctime>
-
+#include "mscl/mscl.h"
 
 #define PI 3.141592653589793
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
-
-/// FOR FLOATS
-//template <typename T>
-//class CircularBuffer
-//{
-//public:
-//    CircularBuffer(size_t size)
-//        : buffer(size)
-//        , maxSize(size)
-//        , head(0)
-//        , tail(0)
-//        , full(false)
-//    {
-//    }
-//
-//    void add(T item)
-//    {
-//        buffer[head] = item;
-//        if (full)
-//        {
-//            tail = (tail + 1) % maxSize;
-//        }
-//        head = (head + 1) % maxSize;
-//        full = head == tail;
-//    }
-//
-//    T get()
-//    {
-//        if (isEmpty())
-//        {
-//            return 0;
-//        }
-//        T item = buffer[tail];
-//        full = false;
-//        tail = (tail + 1) % maxSize;
-//        return item;
-//    }
-//
-//    bool isEmpty() const
-//    {
-//        return (!full && (head == tail));
-//    }
-//
-//    void printBuffer() const
-//    {
-//        std::cout << "Buffer contents: ";
-//        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-//        {
-//            std::cout << buffer[i] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//
-//    void printReadOrder() const
-//    {
-//        std::cout << "Read order: ";
-//        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-//        {
-//            std::cout << buffer[i] << " ";
-//        }
-//        std::cout << std::endl;
-//    }
-//
-//    bool isFull() const
-//    {
-//        return full;
-//    }
-//
-//    size_t size() const
-//    {
-//        size_t size = maxSize;
-//        if (!full)
-//        {
-//            if (head >= tail)
-//            {
-//                size = head - tail;
-//            }
-//            else
-//            {
-//                size = maxSize + head - tail;
-//            }
-//        }
-//        return size;
-//    }
-//
-//private:
-//    std::vector<T> buffer;
-//    size_t maxSize;
-//    size_t head;
-//    size_t tail;
-//    bool full;
-//};
-
-
-/// <summary> for MSCL sweeps
-/// 
-/// </summary>
-/// <typeparam name="T"></typeparam>
-template <typename T>
-class CircularBuffer
-{
-public:
-    CircularBuffer(size_t size)
-        : buffer(size)
-        , maxSize(size)
-        , head(0)
-        , tail(0)
-        , full(false)
-    {
-    }
-
-    void add(T item)
-    {
-        buffer[head] = item;
-        if (full)
-        {
-            tail = (tail + 1) % maxSize;
-        }
-        head = (head + 1) % maxSize;
-        full = head == tail;
-    }
-
-    uint64_t get_time()
-    {
-        return buffer[tail].timestamp().nanoseconds() / 1000; 
-    }
-
-    T get()
-    {
-        if (isEmpty())
-        {
-            return buffer[tail];  // total hack for supporting sweeps
-        }
-        T item = buffer[tail];
-        full = false;
-        tail = (tail + 1) % maxSize;
-        return item;
-    }
-
-    bool isEmpty() const
-    {
-        return (!full && (head == tail));
-    }
-
-    void printBuffer() const
-    {
-        std::cout << "Buffer contents: ";
-        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-        {
-            std::cout << buffer[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    void printReadOrder() const
-    {
-        std::cout << "Read order: ";
-        for (size_t i = tail; i != head; i = (i + 1) % maxSize)
-        {
-            std::cout << buffer[i] << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    bool isFull() const
-    {
-        return full;
-    }
-
-    size_t size() const
-    {
-        size_t size = maxSize;
-        if (!full)
-        {
-            if (head >= tail)
-            {
-                size = head - tail;
-            }
-            else
-            {
-                size = maxSize + head - tail;
-            }
-        }
-        return size;
-    }
-
-private:
-    std::vector<T> buffer;
-    size_t maxSize;
-    size_t head;
-    size_t tail;
-    bool full;
-};
-/*
-int main()
-{
-    CircularBuffer<int> cb(5);
-
-    cb.add(1);
-    cb.add(2);
-    cb.add(3);
-    cb.add(4);
-    cb.add(5);
-
-    std::cout << "Buffer contents: ";
-    while (!cb.isEmpty())
-    {
-        std::cout << cb.get() << " ";
-    }
-    std::cout << std::endl;
-
-    return 0;
-}*/
-//mscl::Connection connection = mscl::Connection::Serial("COM4", 3000000);
-//mscl::Connection connection = mscl::Connection::Serial("COM12", 3000000);
-//mscl::BaseStation basestation(connection);
-////int node_id = 12345;
-// //int node_id = 5;
-//int node_id = 40415;
-
-CircularBuffer<mscl::DataSweep> sweep_buffer(128);
-
-int num_sweeps = 0;
-bool data_flowing = false;
-
-std::mutex load_buffer_lock;
-
 RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const RefChannelInit& init)
     : ChannelImpl(FunctionBlockType("RefChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
-    , waveformType(WaveformType::None)
+    , waveformType(WaveformType::Sine)
     , freq(0)
     , ampl(0)
     , dc(0)
@@ -279,27 +50,7 @@ RefChannelImpl::RefChannelImpl(const ContextPtr& context, const ComponentPtr& pa
     createSignals();
     buildSignalDescriptors();
 
-    initMSCL(0);
 }
-
-
-void RefChannelImpl::initMSCL(uint8_t section)
-{
-
-    std::cout << "\n\nenter the node id " << std::endl;
-    std::cin >> node_id;
-
-    std::cout << "enter the COM port " << std::endl;
-    std::cin >> comPort;
-
-
-    mscl::Connection connection = mscl::Connection::Serial(comPort, 3000000);
-    basestation = new mscl::BaseStation(connection);
-}
-
-//uint64_t then;
-//uint64_t last_size;
-
 
 void RefChannelImpl::signalTypeChangedIfNotUpdating(const PropertyValueEventArgsPtr& args)
 {
@@ -486,7 +237,7 @@ void RefChannelImpl::signalTypeChangedInternal()
 
     waveformType = objPtr.getPropertyValue("Waveform");
 
-    sampleRate = 512;  // PETER heres where sample rate is established
+    sampleRate = 100; //PETER heres where sample rate is established
 
     LOG_I("Properties: SampleRate {}, ClientSideScaling {}", sampleRate, clientSideScaling);
 }
@@ -503,46 +254,132 @@ uint64_t RefChannelImpl::getSamplesSinceStart(std::chrono::microseconds time) co
     return samplesSinceStart;
 }
 
-
 void RefChannelImpl::collectSamples(std::chrono::microseconds curTime)
 {
-    mscl::DataSweeps sweeps = basestation->getData(20, 0);
-    int sweep_size = sweeps.size();
+    std::scoped_lock lock(sync);
+    const uint64_t samplesSinceStart = getSamplesSinceStart(curTime);
+    auto newSamples = samplesSinceStart - samplesGenerated;
 
-    if (sweep_size > 0)
+    if (newSamples > 0)
     {
-        uint64_t sweep_time = (sweeps.data()[0].timestamp().nanoseconds() / 1000);
-        samplesGenerated += sweep_size;
-
-        DataPacketPtr x_packet, y_packet, z_packet; 
-        auto domainPacket = DataPacket(timeSignal.getDescriptor(), sweep_size, sweep_time);
-
-        x_packet = DataPacketWithDomain(domainPacket, x_signal.getDescriptor(), sweep_size);
-        y_packet = DataPacketWithDomain(domainPacket, y_signal.getDescriptor(), sweep_size);
-        z_packet = DataPacketWithDomain(domainPacket, z_signal.getDescriptor(), sweep_size);
-
-        double* x_packet_buffer = static_cast<double*>(x_packet.getRawData());
-        double* y_packet_buffer = static_cast<double*>(y_packet.getRawData());
-        double* z_packet_buffer = static_cast<double*>(z_packet.getRawData());
-        
-        for (int i = 0; i < sweep_size; i++)
+        if (!fixedPacketSize)
         {
-            if ((int)sweeps[i].nodeAddress() == node_id)
+            if (valueSignal.getActive())
             {
-                x_packet_buffer[i] = sweeps[i].data()[0].as_float();
-                y_packet_buffer[i] = sweeps[i].data()[1].as_float();
-                z_packet_buffer[i] = sweeps[i].data()[2].as_float();
+                const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+                auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, newSamples);
+
+                valueSignal.sendPacket(std::move(dataPacket));
+                timeSignal.sendPacket(std::move(domainPacket));
             }
-            else
-                break; 
+
+            samplesGenerated = samplesSinceStart;
+        }
+        else
+        {
+            auto packets = List<IPacket>();
+            auto domainPackets = List<IPacket>();
+            while (newSamples >= packetSize)
+            {
+                if (valueSignal.getActive())
+                {
+                    const auto packetTime = samplesGenerated * deltaT + static_cast<uint64_t>(microSecondsFromEpochToStartTime.count());
+                    auto [dataPacket, domainPacket] = generateSamples(static_cast<int64_t>(packetTime), samplesGenerated, packetSize);
+                    packets.pushBack(std::move(dataPacket));
+                    domainPackets.pushBack(std::move(domainPacket));
+                }
+
+                samplesGenerated += packetSize;
+                newSamples -= packetSize;
+            }
+
+			if (!packets.empty())
+            {           
+                valueSignal.sendPackets(std::move(packets));
+                timeSignal.sendPackets(std::move(domainPackets));
+            }
+        }
+    }
+
+    lastCollectTime = curTime;
+}
+
+ float MSCL_val; 
+
+std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime, uint64_t samplesGenerated, uint64_t newSamples)
+{
+    auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
+    DataPacketPtr dataPacket;
+    if (waveformType == WaveformType::ConstantValue)
+    {
+        dataPacket = ConstantDataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples, constantValue);
+    }
+    else
+    {
+        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+
+        double* buffer;
+
+        if (clientSideScaling)
+        {
+            buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
+        }
+        else
+            buffer = static_cast<double*>(dataPacket.getRawData());
+
+        switch(waveformType)
+        {
+            case WaveformType::Counter:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                    buffer[i] = static_cast<double>(counter++) / sampleRate;
+                break;
+            }
+            case WaveformType::Sine:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                {
+                    // buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
+                    // noiseAmpl * dist(re);
+                    buffer[i] = MSCL_val * 100;
+
+                    std::cout << "value: " << MSCL_val << std::endl;
+                }  
+                break;
+            }
+            case WaveformType::Rect:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                {
+                    double val = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i)));
+                    val = val > 0 ? 1.0 : -1.0;
+                    buffer[i] = val * ampl + dc + noiseAmpl * dist(re);
+                }
+                break;
+            }
+            case WaveformType::None:
+            {
+                for (uint64_t i = 0; i < newSamples; i++)
+                    buffer[i] = dc + noiseAmpl * dist(re);
+                break;
+            }
+            case WaveformType::ConstantValue:
+                break;
         }
 
-        x_signal.sendPacket(std::move(x_packet));
-        y_signal.sendPacket(std::move(y_packet));
-        z_signal.sendPacket(std::move(z_packet));
-        timeSignal.sendPacket(std::move(domainPacket));
+        if (clientSideScaling)
+        {
+            double f = std::pow(2, 24);
+            auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
+            for (size_t i = 0; i < newSamples; i++)
+                *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
+
+            std::free(static_cast<void*>(buffer));
+        }
 
     }
+
+    return {dataPacket, domainPacket};
 }
 
 Int RefChannelImpl::getDeltaT(const double sr) const
@@ -555,17 +392,11 @@ Int RefChannelImpl::getDeltaT(const double sr) const
 
 void RefChannelImpl::buildSignalDescriptors()
 {
-    //const auto valueDescriptor = DataDescriptorBuilder()
-    //                             .setSampleType(SampleType::Float64)
-    //                             .setUnit(Unit("V", -1, "volts", "voltage"))
-    //                             .setValueRange(customRange)
-    //                             .setName("AI " + std::to_string(index + 1));
-
-     const auto valueDescriptor = DataDescriptorBuilder()
-                                  .setSampleType(SampleType::Float64)
-                                  .setUnit(Unit("g"))
-                                  .setValueRange(customRange)
-                                  .setName("AXIS " + std::to_string(index + 1));
+    const auto valueDescriptor = DataDescriptorBuilder()
+                                 .setSampleType(SampleType::Float64)
+                                 .setUnit(Unit("V", -1, "volts", "voltage"))
+                                 .setValueRange(customRange)
+                                 .setName("AI " + std::to_string(index + 1));
 
     if (clientSideScaling)
     {
@@ -580,10 +411,7 @@ void RefChannelImpl::buildSignalDescriptors()
     }
 
 
-    x_signal.setDescriptor(valueDescriptor.build());
-    y_signal.setDescriptor(valueDescriptor.build());
-    z_signal.setDescriptor(valueDescriptor.build());
-    
+    valueSignal.setDescriptor(valueDescriptor.build());
 
     deltaT = getDeltaT(sampleRate);
 
@@ -622,20 +450,9 @@ double RefChannelImpl::coerceSampleRate(const double wantedSampleRate) const
 
 void RefChannelImpl::createSignals()
 {
-    x_signal = createAndAddSignal(fmt::format("G-Link-200 Axis X")); 
-    y_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Y")); 
-    z_signal = createAndAddSignal(fmt::format("G-Link-200 Axis Z")); 
-
-    timeSignal = createAndAddSignal(fmt::format("AI{}Time", 0), nullptr);
-
-    x_signal.setDomainSignal(timeSignal);
-    y_signal.setDomainSignal(timeSignal);
-    z_signal.setDomainSignal(timeSignal);
-
-
-    //valueSignal = createAndAddSignal(fmt::format("ACCEL AXIS {}", index));
-    //timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
-    //valueSignal.setDomainSignal(timeSignal);
+    valueSignal = createAndAddSignal(fmt::format("AI{}", index));
+    timeSignal = createAndAddSignal(fmt::format("AI{}Time", index), nullptr, false);
+    valueSignal.setDomainSignal(timeSignal);
 }
 
 void RefChannelImpl::globalSampleRateChanged(double newGlobalSampleRate)
@@ -673,7 +490,5 @@ void RefChannelImpl::endApplyProperties(const UpdatingActions& propsAndValues, b
         needsSignalTypeChanged = false;
     }
 }
-
-
 
 END_NAMESPACE_REF_DEVICE_MODULE

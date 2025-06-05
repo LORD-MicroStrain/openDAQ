@@ -9,7 +9,6 @@
 #include <opendaq/device_type_factory.h>
 #include <opendaq/device_domain_factory.h>
 #include <utility>
-#include "mscl/mscl.h"
 
 BEGIN_NAMESPACE_REF_DEVICE_MODULE
 
@@ -46,7 +45,6 @@ RefDeviceImpl::RefDeviceImpl(size_t id, const PropertyObjectPtr& config, const C
     }
 
     acqThread = std::thread{ &RefDeviceImpl::acqLoop, this };
-    //acqThread2 = std::thread{ &RefDeviceImpl::hello, this };
 }
 
 RefDeviceImpl::~RefDeviceImpl()
@@ -158,8 +156,6 @@ void RefDeviceImpl::acqLoop()
         {
             auto curTime = getMicroSecondsSinceDeviceStart();
 
-            //std::cout << "------------------------curTime: " <<  curTime.count() << std::endl; 
-
             for (auto& ch : channels)
             {
                 auto chPrivate = ch.asPtr<IRefChannel>();
@@ -177,7 +173,7 @@ void RefDeviceImpl::acqLoop()
 
 void RefDeviceImpl::initProperties(const PropertyObjectPtr& config)
 {
-    size_t numberOfChannels = 1;
+    size_t numberOfChannels = 2;
     bool enableCANChannel = false;
 
     if (config.assigned())
