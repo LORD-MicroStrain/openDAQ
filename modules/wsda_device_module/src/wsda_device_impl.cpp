@@ -26,12 +26,12 @@ WSDADeviceImpl::WSDADeviceImpl(size_t id, const PropertyObjectPtr& config, const
 {
     initMSCL(); 
     initIoFolder();  // explore this further-- maybe has pritable output
-    //initSyncComponent();
+    initSyncComponent();
     initClock();
     initProperties(config);
     updateNumberOfChannels();
-    //enableCANChannel();
-    //updateAcqLoopTime();
+    enableCANChannel();
+    updateAcqLoopTime();
 
     if (config.assigned())
     {
@@ -295,7 +295,7 @@ DeviceInfoPtr WSDADeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& seria
     auto devInfo = DeviceInfo(fmt::format("daqwsda://device{}", id));
     devInfo.setName(fmt::format("Device {}", id));
     devInfo.setManufacturer("MicroStrain");
-    devInfo.setModel("WSDA refrence device");
+    devInfo.setModel("WSDA-200-USB");
     devInfo.setSerialNumber(serialNumber.assigned() ? serialNumber : String(fmt::format("dev_ser_{}", id)));
     devInfo.setDeviceType(CreateType());
 
@@ -305,8 +305,8 @@ DeviceInfoPtr WSDADeviceImpl::CreateDeviceInfo(size_t id, const StringPtr& seria
 DeviceTypePtr WSDADeviceImpl::CreateType()
 {
     return DeviceType("daqwsda",
-                      "WSDA refrence device",
-                      "WSDA refrence device",
+                      "WSDA-200-USB",
+                      "WSDA-200-USB",
                       "daqwsda");
 }
 

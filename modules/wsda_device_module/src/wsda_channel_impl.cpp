@@ -24,15 +24,15 @@ BEGIN_NAMESPACE_WSDA_DEVICE_MODULE
 
 WSDAChannelImpl::WSDAChannelImpl(const ContextPtr& context, const ComponentPtr& parent, const StringPtr& localId, const WSDAChannelInit& init)
     : ChannelImpl(FunctionBlockType("WSDAChannel",  fmt::format("AI{}", init.index + 1), ""), context, parent, localId)
+    , node_id(init.node_id)
+    , num_signals(init.num_signals)
+    , basestation(init.basestation)
     , waveformType(WaveformType::None)
     , freq(0)
     , ampl(0)
     , dc(0)
     , noiseAmpl(0)
     , constantValue(0)
-    , node_id(init.node_id)
-    , num_signals(init.num_signals)
-    , basestation(init.basestation)
     , sampleRate(init.node_sample_rate)
     , index(init.index)
     , globalSampleRate(init.globalSampleRate)
@@ -43,12 +43,13 @@ WSDAChannelImpl::WSDAChannelImpl(const ContextPtr& context, const ComponentPtr& 
     , samplesGenerated(0)
     , re(std::random_device()())
     , needsSignalTypeChanged(false)
+
 {
-    //initProperties();
-    //waveformChangedInternal();
-    //signalTypeChangedInternal();
-    //packetSizeChangedInternal();
-    //resetCounter();
+    initProperties();
+    waveformChangedInternal();
+    signalTypeChangedInternal();
+    packetSizeChangedInternal();
+    resetCounter();
     createSignals();
     buildSignalDescriptors();
 }
