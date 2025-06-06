@@ -310,73 +310,43 @@ std::tuple<PacketPtr, PacketPtr> RefChannelImpl::generateSamples(int64_t curTime
 {
     auto domainPacket = DataPacket(timeSignal.getDescriptor(), newSamples, curTime);
     DataPacketPtr dataPacket;
-    if (waveformType == WaveformType::ConstantValue)
+    dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+
+    double* buffer;
+
+    if (clientSideScaling)
     {
-        dataPacket = ConstantDataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples, constantValue);
+        buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
     }
     else
+        buffer = static_cast<double*>(dataPacket.getRawData());
+
+
+
+
+
+
+    for (uint64_t i = 0; i < newSamples; i++)
     {
-        dataPacket = DataPacketWithDomain(domainPacket, valueSignal.getDescriptor(), newSamples);
+        buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
+        noiseAmpl * dist(re);
+    }
 
-        double* buffer;
 
-        if (clientSideScaling)
-        {
-            buffer = static_cast<double*>(std::malloc(newSamples * sizeof(double)));
-        }
-        else
-            buffer = static_cast<double*>(dataPacket.getRawData());
 
-        switch(waveformType)
-        {
-            case WaveformType::Counter:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                    buffer[i] = static_cast<double>(counter++) / sampleRate;
-                break;
-            }
-            case WaveformType::Sine:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                {
-                    // buffer[i] = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i))) * ampl + dc +
-                    // noiseAmpl * dist(re);
-                    buffer[i] = MSCL_val * 100;
 
-                    std::cout << "value: " << MSCL_val << std::endl;
-                }  
-                break;
-            }
-            case WaveformType::Rect:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                {
-                    double val = std::sin(2.0 * PI * freq / sampleRate * static_cast<double>((samplesGenerated + i)));
-                    val = val > 0 ? 1.0 : -1.0;
-                    buffer[i] = val * ampl + dc + noiseAmpl * dist(re);
-                }
-                break;
-            }
-            case WaveformType::None:
-            {
-                for (uint64_t i = 0; i < newSamples; i++)
-                    buffer[i] = dc + noiseAmpl * dist(re);
-                break;
-            }
-            case WaveformType::ConstantValue:
-                break;
-        }
 
-        if (clientSideScaling)
-        {
-            double f = std::pow(2, 24);
-            auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
-            for (size_t i = 0; i < newSamples; i++)
-                *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
 
-            std::free(static_cast<void*>(buffer));
-        }
 
+         
+    if (clientSideScaling)
+    {
+        double f = std::pow(2, 24);
+        auto packetBuffer = static_cast<uint32_t*>(dataPacket.getRawData());
+        for (size_t i = 0; i < newSamples; i++)
+            *packetBuffer++ = static_cast<uint32_t>((buffer[i] + 10.0) / 20.0 * f);
+
+        std::free(static_cast<void*>(buffer));
     }
 
     return {dataPacket, domainPacket};

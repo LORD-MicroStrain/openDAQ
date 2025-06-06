@@ -47,7 +47,6 @@ WSDADeviceImpl::WSDADeviceImpl(size_t id, const PropertyObjectPtr& config, const
     }
 
     acqThread = std::thread{ &WSDADeviceImpl::acqLoop, this };
-    //acqThread2 = std::thread{ &MSCLDeviceImpl::hello, this };
 }
 
 void WSDADeviceImpl::initMSCL()
@@ -231,7 +230,7 @@ void WSDADeviceImpl::idleAll()
 void WSDADeviceImpl::updateNumberOfChannels()
 {
     std::size_t num = objPtr.getPropertyValue("NumberOfChannels");
-    //LOG_I("Properties: NumberOfChannels {}", num); PETER PETER
+    LOG_I("Properties: NumberOfChannels {}", num); 
     auto globalSampleRate = objPtr.getPropertyValue("GlobalSampleRate");
 
     std::scoped_lock lock(sync);
@@ -258,7 +257,7 @@ void WSDADeviceImpl::updateNumberOfChannels()
         init.num_signals = num_signals; 
         init.microSecondsFromEpochToStartTime = microSecondsFromEpochToDeviceStart; 
 
-        auto localId = fmt::format("node_id_"+std::to_string(node_id));
+        auto localId = fmt::format("node_id_"+std::to_string(node_id), i);
         //auto localId = fmt::format("WSDACh{}", i);
         auto ch = createAndAddChannel<WSDAChannelImpl>(aiFolder, localId, init);
         channels.push_back(std::move(ch));
